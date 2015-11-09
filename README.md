@@ -7,7 +7,7 @@ http://tensorflow.org/
 ## Features
 
 - LogisticRegression
-- CNN(working)
+- CNN
 
 ---
 

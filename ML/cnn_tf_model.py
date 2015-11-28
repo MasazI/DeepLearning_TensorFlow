@@ -32,4 +32,30 @@ def inference(images, hidden_units):
        softmax_linear: output tensor with computed data called logits. 
     '''
     
-    
+    hidden1_units = hidden_units[0]
+    hidden2_units = hidden_units[1]
+
+    with tf.name_scope('hidden1') as scope:
+        weights = tf.Variable(tf.truncated_normal([IMAGE_PIXELS, hidden1_units], stddev=1.0/math.sqrt(float(IMAGE_PIXELS))), name='weights')
+        biases = tf.Variable(tf.zeros([hidden1_units]), name='biases')
+        hidden1 = tf.nn.relu(tf.matmul(images, weights) + biases)
+
+    with tf.name_scope('hidden2') as scope:
+        weights = tf.Variable(tf.truncated_normal([hidden1_units, hidden2_units], stddev=1.0/math.sqrt(float(hidden1_units))), name='weights')
+        biases = tf.Variable(tf.zeros([hidden2_units]), name='biases')
+        hidden2 = tf.nn.relu(tf.matmul(hidden1, weights) + biases)
+
+    with tf.name_scope('softmax_linear') as scope:
+        weights = tf.Variable(tf.truncated_normal([hidden2_units, NUM_CLASSES], stddev=1.0/math.sqrt(float(hidden2_units))), name='weights')
+        biases = tf.Variable(tf.zeros([NUM_CLASSES]), name='biases')
+        logits = tf.matmul(hidden2, weights) + biases
+
+    return logits
+
+
+
+def test():
+    pass
+
+if __name__ == '__main__':
+    test() 

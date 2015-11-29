@@ -10,6 +10,9 @@ http://tensorflow.org/
 - MLP using tensorflow structure and tensorboard
 - CNN
 
+if you use pyenv and anaconda:
+add /Users/masai/.pyenv/versions/anaconda-2.0.1/bin/ into PATH
+
 ---
 
 Copyright (c) 2015 Masahiro Imai

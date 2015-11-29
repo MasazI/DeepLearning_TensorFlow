@@ -11,7 +11,7 @@ http://tensorflow.org/
 - CNN
 
 if you use pyenv and anaconda:
-add /Users/masai/.pyenv/versions/anaconda-2.0.1/bin/ into PATH
+add /path/to/.pyenv/versions/anaconda-2.0.1/bin/ into PATH
 
 ---
 

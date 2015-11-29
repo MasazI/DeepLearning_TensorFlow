@@ -7,6 +7,7 @@ http://tensorflow.org/
 ## Features
 
 - LogisticRegression
+- MLP using tensorflow structure and tensorboard
 - CNN
 
 ---

@@ -16,6 +16,7 @@ NUM_CLASSES = 10
 IMAGE_SIZE = 28
 IMAGE_PIXELS = IMAGE_SIZE * IMAGE_SIZE
 
+# inference build model for feed-forward.
 def inference(images, hidden_units):
     '''
     build model
@@ -53,9 +54,34 @@ def inference(images, hidden_units):
     return logits
 
 
+# loss
+def loss(logits, labels):
+    # batchのサイズはカテゴリー数とする
+    batch_size = tf.size(labels)
+
+    # labels labels(batchの各事例に対するlabel tensor)を事例ごとのtensorに分解
+    labels = tf.expand_dims(labels, 1)
+
+    # indices batch_sizeのシーケンスをtensorに分解
+    indices = tf.expand_dims(tf.range(0, batch_size, 1), 1)
+
+    # labelsとindicesを結合 batchのindexとlabelのtupleを要素とするtensorを生成
+    concated = tf.concat(1, [indices, labels])
+
+    # onehot valuesの生成 packでは[tensorの数、各tensorの次元]のtupleを作成、concatedは[batchのindex, label]のtuple、3rd argsにhotのvalue、4th argsにnon hotのvalue
+    onehot_labels = tf.sparse_to_dense(concated, tf.pack([batch_size, NUM_CLASSES]), 1.0, 0.0)
+    
+    # 交差エントロピー誤差の計算
+    cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits, onehot_labels, name='xentropy')
+
+    # 誤差のbatch内平均
+    loss = tf.reduce_mean(cross_entroy, name='xentroy_mean')
+
+    return loss
 
 def test():
     pass
+    #inference()
 
 if __name__ == '__main__':
     test() 

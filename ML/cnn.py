@@ -77,6 +77,7 @@ class CNN():
                 # 100回ごとにテスト
                 train_accuracy = accuracy.eval(feed_dict={self.x: batch[0], self.y_:batch[1], self.keep_prob: 1.0})
                 print "setp %d, training accuracy %g" % (i, train_accuracy)
+            # input data, target data, placeholder
             train_step.run(feed_dict={self.x:batch[0], self.y_:batch[1], self.keep_prob: 1.0})
         print "test accuracy %g" % accuracy.eval(feed_dict={self.x: mnist.test.images, self.y_: mnist.test.labels, self.keep_prob: 1.0})
 

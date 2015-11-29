@@ -56,7 +56,7 @@ def inference(images, hidden_units):
 
 # loss
 def loss(logits, labels):
-    # batchのサイズはカテゴリー数とする
+    # batchのサイズはlabelsで与えられた配列の個数
     batch_size = tf.size(labels)
 
     # labels labels(batchの各事例に対するlabel tensor)を事例ごとのtensorに分解
@@ -75,7 +75,7 @@ def loss(logits, labels):
     cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits, onehot_labels, name='xentropy')
 
     # 誤差のbatch内平均
-    loss = tf.reduce_mean(cross_entroy, name='xentroy_mean')
+    loss = tf.reduce_mean(cross_entropy, name='xentroy_mean')
 
     return loss
 
@@ -94,7 +94,7 @@ def train(loss, learning_rate):
     return train_op
 
 # evaluate
-def evaluation(logits, labels_placeholder):
+def evaluation(logits, labels):
     # 識別モデルの実行には、nn.in_top_kが使える。2rd argsはk
     # top k-位に正解ラベルが入っていた場合にtrueのtensorとなり、
     # batch_sizeの配列で取得できる

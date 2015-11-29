@@ -79,6 +79,30 @@ def loss(logits, labels):
 
     return loss
 
+# trian
+def train(loss, learning_rate):
+    tf.scalar_summary(loss.op.name, loss)
+
+    optimizer = tf.train.GradientDescentOptimizer(learning_rate)
+
+    # trainable=Falseは学習しない変数
+    global_step = tf.Variable(0, name='global_step', trainable=False)
+
+    train_op = optimizer.minimize(loss, global_step=global_step)
+
+    # train operatorを返す
+    return train_op
+
+# evaluate
+def evaluation(logits, labels_placeholder):
+    # 識別モデルの実行には、nn.in_top_kが使える。2rd argsはk
+    # top k-位に正解ラベルが入っていた場合にtrueのtensorとなり、
+    # batch_sizeの配列で取得できる
+    correct = tf.nn.in_top_k(logits, labels, 1)
+
+    # boolをintにして、合計する(ミニバッチの中の正解数になる)
+    return tf.reduce_sum(tf.cast(correct, tf.int32))
+
 def test():
     pass
     #inference()

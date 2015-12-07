@@ -20,6 +20,8 @@ INITIAL_LEARNING_RATE = FLAGS.learning_rate
 TOWER_NAME = FLAGS.tower_name
 
 
+
+
 def test():
     pass
 

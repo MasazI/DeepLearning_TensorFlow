@@ -1,7 +1,15 @@
 # encoding: utf-8
 
+# general
+import os
+import re
+import sys
+
 # tensorflow
 import tensorflow as tf
+
+# cifar10
+import cifar10
 
 # settings
 import cifar10_settings as settings

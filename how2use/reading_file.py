@@ -92,9 +92,11 @@ def load():
         threads = tf.train.start_queue_runners(sess=sess, coord=coord)
 
         for i in range(1):
-            image.set_shape([height.eval() * width.eval()])
             image_eval = image.eval()
-            print image_eval.shape
+            image_eval_reshape = image_eval.reshape([height.eval(), width.eval(), depth.eval()])
+            pilimg = Image.fromarray(np.asarray(image_eval_reshape))
+            pilimg.show()
+            print image_eval_reshape.shape
             print height.eval()
             print width.eval()
             print depth.eval()

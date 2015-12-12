@@ -1,7 +1,6 @@
 #encoding: utf-8
 
 import tensorflow as tf
-import input_data
 
 import numpy as np
 
@@ -22,7 +21,7 @@ def save():
     '''
     print "main"
 
-    jpgnames_queue = tf.train.string_input_producer(['images/image.jpg'])
+    jpgnames_queue = tf.train.string_input_producer(['images/image.jpg', 'images/image2.jpg'])
     pngnames_queue = tf.train.string_input_producer(['images/image.png'])
 
     reader = tf.WholeFileReader()
@@ -39,34 +38,36 @@ def save():
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(coord=coord)
 
-        for i in range(1):
+        for i in range(2):
             jpg_image_eval = jpg_image.eval()
-            png_image_eval = png_image.eval()
+            #png_image_eval = png_image.eval()
 
-        print jpg_image_eval.shape
-        print png_image_eval.shape
+            print type(jpg_image_eval)
+            print jpg_image_eval.shape
+            print jpg_image_eval
+            #print png_image_eval.shape
 
-        # disp jpg
-        pilimg = Image.fromarray(np.asarray(jpg_image_eval))
-        pilimg.show()
+            # disp jpg
+            pilimg = Image.fromarray(np.asarray(jpg_image_eval))
+            pilimg.show()
 
-        # jpg save as tfrecords
-        rows = jpg_image_eval.shape[0]
-        cols = jpg_image_eval.shape[1]
-        depth = jpg_image_eval.shape[2]
-        image_raw = jpg_image_eval.tostring()
+            # jpg save as tfrecords
+            rows = jpg_image_eval.shape[0]
+            cols = jpg_image_eval.shape[1]
+            depth = jpg_image_eval.shape[2]
+            image_raw = jpg_image_eval.tostring()
 
-        filename = 'sample.tfrecords'
-        print 'Writing ' + filename
-        writer = tf.python_io.TFRecordWriter(filename)
-        example = tf.train.Example(features=tf.train.Features(feature={
-            'height': _int64_feature(rows),
-            'width': _int64_feature(cols),
-            'depth': _int64_feature(depth),
-            'label': _int64_feature(0),
-            'image_raw': _bytes_feature(image_raw)
+            filename = 'sample.tfrecords'
+            print 'Writing ' + filename
+            writer = tf.python_io.TFRecordWriter(filename)
+            example = tf.train.Example(features=tf.train.Features(feature={
+                'height': _int64_feature(rows),
+                'width': _int64_feature(cols),
+                'depth': _int64_feature(depth),
+                'label': _int64_feature(0),
+                'image_raw': _bytes_feature(image_raw)
             }))
-        writer.write(example.SerializeToString())
+            writer.write(example.SerializeToString())
 
         coord.request_stop()
         coord.join(threads)
@@ -91,7 +92,7 @@ def load():
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(sess=sess, coord=coord)
 
-        for i in range(1):
+        for i in range(2):
             image_eval = image.eval()
             image_eval_reshape = image_eval.reshape([height.eval(), width.eval(), depth.eval()])
             pilimg = Image.fromarray(np.asarray(image_eval_reshape))

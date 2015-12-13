@@ -69,7 +69,8 @@ def _generate_image_and_label_batch(image, label, min_queue_examples):
 
 def distorted_inputs(tfrecords_file):
     print tfrecords_file
-    read_input = data.read(tfrecords_file)
+    filename_queue = tf.train.string_input_producer(["data/train.tfrecords"], num_epochs=2)
+    read_input = data.read(filename_queue)
     reshaped_image = tf.cast(read_input.image, tf.float32)
 
     height = CROP_SIZE

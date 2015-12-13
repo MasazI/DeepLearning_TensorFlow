@@ -84,7 +84,7 @@ def distorted_inputs(tfrecords_file):
     create inputs with real time augumentation.
     '''
     print tfrecords_file
-    filename_queue = tf.train.string_input_producer([tfrecords_file], num_epochs=2)
+    filename_queue = tf.train.string_input_producer([tfrecords_file]) # ここで指定したepoch数はtrainableになる
     read_input = data.read(filename_queue)
     reshaped_image = tf.cast(read_input.image, tf.float32)
 
@@ -291,6 +291,7 @@ def train(total_loss, global_step):
     # 学習パラメータのヒストグラムに加える
     for var in tf.trainable_variables():
         # tag, values
+        print var.op.name
         tf.histogram_summary(var.op.name, var)
 
     # Add histograms for gradients.

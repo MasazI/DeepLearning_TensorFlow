@@ -84,7 +84,7 @@ def distorted_inputs(tfrecords_file):
     create inputs with real time augumentation.
     '''
     print tfrecords_file
-    filename_queue = tf.train.string_input_producer(["data/train.tfrecords"], num_epochs=2)
+    filename_queue = tf.train.string_input_producer([tfrecords_file], num_epochs=2)
     read_input = data.read(filename_queue)
     reshaped_image = tf.cast(read_input.image, tf.float32)
 
@@ -111,7 +111,8 @@ def distorted_inputs(tfrecords_file):
 
     return _generate_image_and_label_batch(float_image, read_input.label, min_queue_examples)
 
-def inrefence(images):
+
+def inference(images):
     '''
     アーキテクチャの定義、グラフのビルド
     '''
@@ -163,7 +164,7 @@ def inrefence(images):
         _activation_summary(conv2)
     
     # norm2
-    norm1 = tf.nn.lrn(
+    norm2 = tf.nn.lrn(
         conv2,
         4,
         bias=1.0,
@@ -173,7 +174,7 @@ def inrefence(images):
     )
 
     # pool2
-    pool1 = tf.nn.max_pool(
+    pool2 = tf.nn.max_pool(
         norm2,
         ksize=[1, 3, 3, 1],
         strides=[1, 2, 2, 1],
@@ -207,7 +208,7 @@ def inrefence(images):
             wd=0.004    
         )
         biases = _variable_on_cpu('biases', [192], tf.constant_initializer(0.1))
-        local4 = tf.nn.relu_layer(reshape, weights, biases, name=scope.name)
+        local4 = tf.nn.relu_layer(local3, weights, biases, name=scope.name)
         _activation_summary(local4)
 
     # softmax
@@ -227,7 +228,7 @@ def inrefence(images):
 
 def loss(logits, labels):
     sparse_labels = tf.reshape(labels, [FLAGS.batch_size, 1])
-    indices = tf.reshape(tf.range(FLAGS.batch_size), [FLAGS.batch_size, 1])
+    indices = tf.reshape(tf.range(0, FLAGS.batch_size), [FLAGS.batch_size, 1])
     concated = tf.concat(1, [indices, sparse_labels])
     dense_labels = tf.sparse_to_dense(
         concated,
@@ -244,6 +245,8 @@ def loss(logits, labels):
 
     cross_entropy_mean = tf.reduce_mean(cross_entropy, name='cross_entropy')
     tf.add_to_collection('losses', cross_entropy_mean)
+
+    return tf.add_n(tf.get_collection('losses'), name='total_loss')
 
 
 def _add_loss_summaries(total_loss):
@@ -287,6 +290,7 @@ def train(total_loss, global_step):
     # Add histograms for trainable variables.
     # 学習パラメータのヒストグラムに加える
     for var in tf.trainable_variables():
+        # tag, values
         tf.histogram_summary(var.op.name, var)
 
     # Add histograms for gradients.

@@ -21,3 +21,7 @@ flags.DEFINE_integer('num_examples_per_epoch_for_eval', 1, 'the number of exampl
 flags.DEFINE_string('tower_name', 'tower', 'multiple GPU prefix.')
 flags.DEFINE_integer('num_classes', 4, 'the number of classes.')
 flags.DEFINE_integer('num_threads', 1, 'the number of threads.')
+
+flags.DEFINE_string('train_dir', 'train', 'directory where to write even logs and checkpoint')
+flags.DEFINE_integer('max_steps', 100000, 'the number of batches to run.')
+flags.DEFINE_boolean('log_device_placement', False, 'where to log device placement.')

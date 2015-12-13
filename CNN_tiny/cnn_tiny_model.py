@@ -33,6 +33,9 @@ TOWER_NAME = FLAGS.tower_name
 
 
 def _variable_with_weight_decay(name, shape, stddev, wd):
+    '''
+    重み減衰を利用した変数の初期化
+    '''
     var = _variable_on_cpu(name, shape, tf.truncated_normal_initializer(stddev=stddev))
     if wd:
         weight_decay = tf.mul(tf.nn.l2_loss(var), wd, name='weight_loss')
@@ -41,18 +44,27 @@ def _variable_with_weight_decay(name, shape, stddev, wd):
 
 
 def _variable_on_cpu(name, shape, initializer):
+    '''
+    CPUメモリに変数をストアする
+    '''
     with tf.device('/cpu:0'):
         var = tf.get_variable(name, shape, initializer=initializer)
     return var
 
 
 def _activation_summary(x):
+    '''
+    可視化用のサマリを作成
+    '''
     tensor_name = re.sub('%s_[0-9]*/' % TOWER_NAME, '', x.op.name)
     tf.histogram_summary(tensor_name + '/activations', x)
     tf.scalar_summary(tensor_name + '/sparsity', tf.nn.zero_fraction(x))
 
 
 def _generate_image_and_label_batch(image, label, min_queue_examples):
+    '''
+    imageとlabelのmini batchを生成
+    '''
     num_preprocess_threads = NUM_THREADS
     images, label_batch = tf.train.shuffle_batch(
         [image, label],
@@ -68,6 +80,9 @@ def _generate_image_and_label_batch(image, label, min_queue_examples):
     
 
 def distorted_inputs(tfrecords_file):
+    '''
+    create inputs with real time augumentation.
+    '''
     print tfrecords_file
     filename_queue = tf.train.string_input_producer(["data/train.tfrecords"], num_epochs=2)
     read_input = data.read(filename_queue)
@@ -97,6 +112,9 @@ def distorted_inputs(tfrecords_file):
     return _generate_image_and_label_batch(float_image, read_input.label, min_queue_examples)
 
 def inrefence(images):
+    '''
+    アーキテクチャの定義、グラフのビルド
+    '''
     # conv1
     with tf.variable_scope('conv1') as scope:
         kernel = _variable_with_weight_decay(
@@ -241,10 +259,12 @@ def _add_loss_summaries(total_loss):
 
 
 def train(total_loss, global_step):
+    # epochあたりのmini batch数
     num_batches_per_epoch = NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN / FLAGS.batch_size
+    # 重み減衰のステップ 減衰あたりのmini batch数
     decay_steps = int(num_batches_per_epoch * NUM_EPOCHS_PER_DECAY)
 
-    # Decay the learning rate exponentially based on the number of steps.
+    # 学習率をステップ数に応じて減衰する
     lr = tf.train.exponential_decay(
         INITIAL_LEARNING_RATE,
         global_step,
@@ -252,27 +272,38 @@ def train(total_loss, global_step):
         LEARNING_RATE_DECAY_FACTOR,
         staircase=True)
     tf.scalar_summary('learning_rate', lr)
-    # Generate moving averages of all losses and associated summaries.
+    
+    # lossの移動平均とサマリーをひも付け
     loss_averages_op = _add_loss_summaries(total_loss)
-    # Compute gradients.
+    
+    # 勾配の計算
     with tf.control_dependencies([loss_averages_op]):
         opt = tf.train.GradientDescentOptimizer(lr)
         grads = opt.compute_gradients(total_loss)
-    # Apply gradients.
+    
+    # 勾配を適用
     apply_gradient_op = opt.apply_gradients(grads, global_step=global_step)
+    
     # Add histograms for trainable variables.
+    # 学習パラメータのヒストグラムに加える
     for var in tf.trainable_variables():
         tf.histogram_summary(var.op.name, var)
+
     # Add histograms for gradients.
+    # 勾配のヒストグラムに加える
     for grad, var in grads:
         if grad:
             tf.histogram_summary(var.op.name + '/gradients', grad)
+
     # Track the moving averages of all trainable variables.
+    # 全ての学習パラメータの移動平均をトラックする
     variable_averages = tf.train.ExponentialMovingAverage(
         MOVING_AVERAGE_DECAY, global_step)
     variables_averages_op = variable_averages.apply(tf.trainable_variables())
     with tf.control_dependencies([apply_gradient_op, variables_averages_op]):
         train_op = tf.no_op(name='train')
+    
+    # 学習オペレーションを返す
     return train_op
 
 

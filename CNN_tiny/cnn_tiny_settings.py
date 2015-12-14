@@ -7,7 +7,6 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_integer('batch_size', 4, 'the number of images in a batch.')
 flags.DEFINE_string('train_tfrecords', 'data/train.tfrecords', 'path to tfrecords file for train.')
-flags.DEFINE_string('test_tfrecords', '', 'path to tfrecords file for test.')
 flags.DEFINE_integer('image_height', 32, 'image height.')
 flags.DEFINE_integer('image_width', 32, 'image width.')
 flags.DEFINE_integer('image_depth', 3, 'image depth.')
@@ -25,3 +24,10 @@ flags.DEFINE_integer('num_threads', 2, 'the number of threads.')
 flags.DEFINE_string('train_dir', 'train', 'directory where to write even logs and checkpoint')
 flags.DEFINE_integer('max_steps', 100000, 'the number of batches to run.')
 flags.DEFINE_boolean('log_device_placement', False, 'where to log device placement.')
+
+flags.DEFINE_string('eval_dir', 'eval', 'directory where to write event logs.')
+flags.DEFINE_string('eval_data', '', 'path to tfrecords file for eval')
+flags.DEFINE_string('checkpoint_dir', 'train', 'directory where to read model checkpoints.')
+flags.DEFINE_integer('eval_interval_secs', 10, 'How to often to run the eval.'),
+flags.DEFINE_integer('num_examples', 100, 'the number of examples to run.')
+flags.DEFINE_boolean('run_once', False, 'whether to run eval only once.')

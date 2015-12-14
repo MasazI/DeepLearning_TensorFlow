@@ -62,7 +62,7 @@ def train():
 
         # サマリーのライターを設定
         summary_writer = tf.train.SummaryWriter(TRAIN_DIR, graph_def=sess.graph_def)
-    
+   
         # max_stepまで繰り返し学習
         for step in xrange(MAX_STEPS):
             start_time = time.time()
@@ -83,8 +83,8 @@ def train():
                 sec_per_batch = float(duration)
 
                 # time, step数, loss, 1秒で実行できた事例数, バッチあたりの時間
-                format_str = ('$s: step %d, loss = %.2f (%.1f examples/sec; %.3f sec/batch)')
-                print(format_str % (datetime.now(), step, loss_value, examples_per_sec, sec_per_batch))
+                format_str = '$s: step %d, loss = %.2f (%.1f examples/sec; %.3f sec/batch)'
+                print str(datetime.now()) + ': step' + str(step) + ', loss= '+ str(loss_value) + ' ' + str(examples_per_sec) + ' examples/sec; ' + str(sec_per_batch) + ' sec/batch '
 
             # 100回ごと
             if step % 100 == 0:
@@ -102,9 +102,9 @@ def train():
 
 
 def main(argv=None):
-    # if gfile.Exists(TRAIN_DIR):
-    #     gfile.DeleteRecursively(TRAIN_DIR)
-    # gfile.MakeDir(TRAIN_DIR)
+    if gfile.Exists(TRAIN_DIR):
+        gfile.DeleteRecursively(TRAIN_DIR)
+    gfile.MakeDirs(TRAIN_DIR)
     train()
 
 if __name__ == '__main__':

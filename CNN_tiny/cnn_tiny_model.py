@@ -84,7 +84,7 @@ def distorted_inputs(tfrecords_file):
     create inputs with real time augumentation.
     '''
     print tfrecords_file
-    filename_queue = tf.train.string_input_producer([tfrecords_file]) # ここで指定したepoch数はtrainableになる
+    filename_queue = tf.train.string_input_producer([tfrecords_file]) # ここで指定したepoch数はtrainableになるので注意
     read_input = data.read(filename_queue)
     reshaped_image = tf.cast(read_input.image, tf.float32)
 
@@ -227,14 +227,18 @@ def inference(images):
 
 
 def loss(logits, labels):
-    sparse_labels = tf.reshape(labels, [FLAGS.batch_size, 1])
-    indices = tf.reshape(tf.range(0, FLAGS.batch_size), [FLAGS.batch_size, 1])
-    concated = tf.concat(1, [indices, sparse_labels])
+    #sparse_labels = tf.reshape(labels, [FLAGS.batch_size, 1])
+    #indices = tf.reshape(tf.range(0, FLAGS.batch_size), [FLAGS.batch_size, 1])
+    labels = tf.expand_dims(labels, 1)
+    indices = tf.expand_dims(tf.range(0, FLAGS.batch_size, 1), 1)
+    #concated = tf.concat(1, [indices, sparse_labels])
+    concated = tf.concat(1, [indices, labels])
+    # sparse_to_dense のクラス数は クラスラベルの最大値+1 とすること
     dense_labels = tf.sparse_to_dense(
         concated,
         [FLAGS.batch_size, NUM_CLASSES],
         1.0,
-        0.0    
+        0.0
     )
 
     cross_entropy = tf.nn.softmax_cross_entropy_with_logits(
@@ -290,8 +294,7 @@ def train(total_loss, global_step):
     # Add histograms for trainable variables.
     # 学習パラメータのヒストグラムに加える
     for var in tf.trainable_variables():
-        # tag, values
-        print var.op.name
+        print(var.op.name)
         tf.histogram_summary(var.op.name, var)
 
     # Add histograms for gradients.

@@ -11,22 +11,16 @@ import tensorflow as tf
 # data
 import data
 
+# inputs
+import data_inputs
+
 # settings
 import cnn_tiny_settings as settings
 FLAGS = settings.FLAGS
 
 NUM_CLASSES = FLAGS.num_classes
-NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN = FLAGS.num_examples_per_epoch_for_train
-NUM_EXAMPLES_PER_EPOCH_FOR_EVAL = FLAGS.num_examples_per_epoch_for_eval
-
-MOVING_AVERAGE_DECAY = FLAGS.moving_average_decay
-NUM_EPOCHS_PER_DECAY = FLAGS.num_epochs_per_decay
 LEARNING_RATE_DECAY_FACTOR = FLAGS.learning_rate_decay_factor
 INITIAL_LEARNING_RATE = FLAGS.learning_rate
-CROP_SIZE = FLAGS.crop_size
-
-BATCH_SIZE = FLAGS.batch_size
-NUM_THREADS = FLAGS.num_threads
 
 # multiple GPU's prefix
 TOWER_NAME = FLAGS.tower_name
@@ -59,80 +53,6 @@ def _activation_summary(x):
     tensor_name = re.sub('%s_[0-9]*/' % TOWER_NAME, '', x.op.name)
     tf.histogram_summary(tensor_name + '/activations', x)
     tf.scalar_summary(tensor_name + '/sparsity', tf.nn.zero_fraction(x))
-
-
-def _generate_image_and_label_batch(image, label, min_queue_examples):
-    '''
-    imageとlabelのmini batchを生成
-    '''
-    num_preprocess_threads = NUM_THREADS
-    images, label_batch = tf.train.shuffle_batch(
-        [image, label],
-        batch_size=BATCH_SIZE,
-        num_threads=num_preprocess_threads,
-        capacity=min_queue_examples + 3 * BATCH_SIZE,
-        min_after_dequeue=min_queue_examples
-    )
-
-    # Display the training images in the visualizer
-    tf.image_summary('images', images)
-    return images, tf.reshape(label_batch, [BATCH_SIZE])
-    
-
-def distorted_inputs(tfrecords_file):
-    '''
-    create inputs with real time augumentation.
-    '''
-    print tfrecords_file
-    filename_queue = tf.train.string_input_producer([tfrecords_file]) # ここで指定したepoch数はtrainableになるので注意
-    read_input = data.read(filename_queue)
-    reshaped_image = tf.cast(read_input.image, tf.float32)
-
-    height = CROP_SIZE
-    width = CROP_SIZE
-
-    # crop
-    distorted_image = tf.image.random_crop(reshaped_image, [height, width]) 
-
-    # flip
-    distorted_image = tf.image.random_flip_left_right(distorted_image)
-     
-    # you can add random brightness contrast
-    distorted_image = tf.image.random_brightness(distorted_image, max_delta=63)
-    distorted_image = tf.image.random_contrast(distorted_image, lower=0.2, upper=1.8)
-    
-    # whitening
-    float_image = tf.image.per_image_whitening(distorted_image)
-
-    min_fraction_of_examples_in_queue = 0.4
-    #min_fraction_of_examples_in_queue = 1
-    min_queue_examples = int(NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN * min_fraction_of_examples_in_queue)
-    print ('filling queue with %d train images before starting to train.  This will take a few minutes.' % min_queue_examples)
-
-    return _generate_image_and_label_batch(float_image, read_input.label, min_queue_examples)
-
-
-def inputs(tfrecords_file):
-    '''
-    create inputs
-    '''
-    print tfrecords_file
-    filename_queue = tf.train.string_input_producer([tfrecords_file]) # ここで指定したepoch数はtrainableになるので注意
-    read_input = data.read(filename_queue)
-    reshaped_image = tf.cast(read_input.image, tf.float32)
-
-    height = CROP_SIZE
-    width = CROP_SIZE
-
-    resized_image = tf.image.resize_image_with_crop_or_pad(reshaped_image, width, height)
-    float_image = tf.image.per_image_whitening(resized_image)
-
-    min_fraction_of_examples_in_queue = 0.4
-    #min_fraction_of_examples_in_queue = 1
-    min_queue_examples = int(NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN * min_fraction_of_examples_in_queue)
-    print ('filling queue with %d train images before starting to train.  This will take a few minutes.' % min_queue_examples)
-
-    return _generate_image_and_label_batch(float_image, read_input.label, min_queue_examples)
 
 
 def inference(images):
@@ -286,60 +206,3 @@ def _add_loss_summaries(total_loss):
         tf.scalar_summary(l.op.name, loss_averages.average(l))
 
     return loss_averages_op
-
-
-def train(total_loss, global_step):
-    # epochあたりのmini batch数
-    num_batches_per_epoch = NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN / FLAGS.batch_size
-    # 重み減衰のステップ 減衰あたりのmini batch数
-    decay_steps = int(num_batches_per_epoch * NUM_EPOCHS_PER_DECAY)
-
-    # 学習率をステップ数に応じて減衰する
-    lr = tf.train.exponential_decay(
-        INITIAL_LEARNING_RATE,
-        global_step,
-        decay_steps,
-        LEARNING_RATE_DECAY_FACTOR,
-        staircase=True)
-    tf.scalar_summary('learning_rate', lr)
-    
-    # lossの移動平均とサマリーをひも付け
-    loss_averages_op = _add_loss_summaries(total_loss)
-    
-    # 勾配の計算
-    with tf.control_dependencies([loss_averages_op]):
-        opt = tf.train.GradientDescentOptimizer(lr)
-        grads = opt.compute_gradients(total_loss)
-    
-    # 勾配を適用
-    apply_gradient_op = opt.apply_gradients(grads, global_step=global_step)
-    
-    # Add histograms for trainable variables.
-    # 学習パラメータのヒストグラムに加える
-    for var in tf.trainable_variables():
-        print(var.op.name)
-        tf.histogram_summary(var.op.name, var)
-
-    # Add histograms for gradients.
-    # 勾配のヒストグラムに加える
-    for grad, var in grads:
-        if grad:
-            tf.histogram_summary(var.op.name + '/gradients', grad)
-
-    # Track the moving averages of all trainable variables.
-    # 全ての学習パラメータの移動平均をトラックする
-    variable_averages = tf.train.ExponentialMovingAverage(
-        MOVING_AVERAGE_DECAY, global_step)
-    variables_averages_op = variable_averages.apply(tf.trainable_variables())
-    with tf.control_dependencies([apply_gradient_op, variables_averages_op]):
-        train_op = tf.no_op(name='train')
-    
-    # 学習オペレーションを返す
-    return train_op
-
-
-def test():
-    distorted_inputs('data/train.tfrecords')
-
-if __name__ == '__main__':
-    test()

@@ -14,6 +14,12 @@ import tensorflow as tf
 # model
 import cnn_tiny_model as model
 
+# train operation
+import cnn_tiny_train_op as op
+
+# inputs
+import data_inputs
+
 # settings
 import cnn_tiny_settings as settings
 FLAGS = settings.FLAGS
@@ -33,7 +39,7 @@ def train():
         global_step = tf.Variable(0, trainable=False)
 
         # 教師データ
-        images, labels = model.distorted_inputs('data/train.tfrecords')
+        images, labels = data_inputs.distorted_inputs('data/train.tfrecords')
 
         # graphのoutput
         logits = model.inference(images)
@@ -42,7 +48,7 @@ def train():
         loss = model.loss(logits, labels)
 
         # 学習オペレーション
-        train_op = model.train(loss, global_step)
+        train_op = op.train(loss, global_step)
 
         # saver
         saver = tf.train.Saver(tf.all_variables())

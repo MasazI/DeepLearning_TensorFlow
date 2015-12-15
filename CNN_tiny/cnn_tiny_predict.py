@@ -49,7 +49,9 @@ def inference(images):
     アーキテクチャの定義、グラフのビルド
     '''
     # 学習時にネットワークに入力していた画像サイズに揃える
-    x_image = tf.reshape(images, [-1, 24, 24, 3])
+    resize_image = tf.reshape(images, [24, 24, 3])
+    float_image = tf.image.per_image_whitening(resize_image)
+    x_image = tf.reshape(float_image, [-1, 24, 24, 3])
 
     # conv1
     with tf.variable_scope('conv1') as scope:
@@ -172,6 +174,7 @@ if __name__ == '__main__':
     saver = tf.train.Saver()
     sess.run(tf.initialize_all_variables())
 
+    # restore trained model
     ckpt = tf.train.get_checkpoint_state('train')
     print(ckpt.model_checkpoint_path)
     if ckpt and ckpt.model_checkpoint_path:
@@ -181,9 +184,13 @@ if __name__ == '__main__':
         print('No checkpoint file found.')
         quit()
 
+    # predict
+    print('the num of test images: %d' % (len(test_image)))
     for i in range(len(test_image)):
-        print(logits.eval(feed_dict={images_placeholder: [test_image[i]]}))
-        pred = np.argmax(logits.eval(feed_dict={images_placeholder: [test_image[i]]}) [0])
-        print(pred)
-
+        start_time = time.time()
+        softmax = logits.eval(feed_dict={images_placeholder: [test_image[i]]}) [0]
+        print(softmax)
+        pred = np.argmax(softmax)
+        duration = time.time() - start_time
+        print('category: %i, duration: %f (sec)' % (pred, duration))
 

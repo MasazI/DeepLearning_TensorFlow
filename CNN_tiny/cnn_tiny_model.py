@@ -104,8 +104,31 @@ def distorted_inputs(tfrecords_file):
     # whitening
     float_image = tf.image.per_image_whitening(distorted_image)
 
-    #min_fraction_of_examples_in_queue = 0.4
-    min_fraction_of_examples_in_queue = 1
+    min_fraction_of_examples_in_queue = 0.4
+    #min_fraction_of_examples_in_queue = 1
+    min_queue_examples = int(NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN * min_fraction_of_examples_in_queue)
+    print ('filling queue with %d train images before starting to train.  This will take a few minutes.' % min_queue_examples)
+
+    return _generate_image_and_label_batch(float_image, read_input.label, min_queue_examples)
+
+
+def inputs(tfrecords_file):
+    '''
+    create inputs
+    '''
+    print tfrecords_file
+    filename_queue = tf.train.string_input_producer([tfrecords_file]) # ここで指定したepoch数はtrainableになるので注意
+    read_input = data.read(filename_queue)
+    reshaped_image = tf.cast(read_input.image, tf.float32)
+
+    height = CROP_SIZE
+    width = CROP_SIZE
+
+    resized_image = tf.image.resize_image_with_crop_or_pad(reshaped_image, width, height)
+    float_image = tf.image.per_image_whitening(resized_image)
+
+    min_fraction_of_examples_in_queue = 0.4
+    #min_fraction_of_examples_in_queue = 1
     min_queue_examples = int(NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN * min_fraction_of_examples_in_queue)
     print ('filling queue with %d train images before starting to train.  This will take a few minutes.' % min_queue_examples)
 

@@ -43,13 +43,13 @@ def train():
         # 教師データ
         if FLAGS.training_data_type == 0:
             # directory feed inputs
-            image_input = ImageInput('examples.txt')
+            image_input = ImageInput('caltech_samples_random.txt')
             images  = tf.placeholder(tf.float32, shape=(FLAGS.batch_size, FLAGS.crop_size, FLAGS.crop_size, FLAGS.image_depth))
             labels = tf.placeholder(tf.int32, shape=(FLAGS.batch_size,))
             learning_rate_node = tf.placeholder(tf.float32, shape=[])
         elif FLAGS.training_data_type == 1:
             # tfrecords inputs
-            images, labels = data_inputs.distorted_inputs('data/train.tfrecords')
+            images, labels = data_inputs.distorted_inputs('data/train_caltech.tfrecords')
 
         # graphのoutput
         logits = model.inference(images)
@@ -89,7 +89,7 @@ def train():
             # directory feed inputs
             if FLAGS.training_data_type == 0:
                 train_images, train_labels = image_input.batches(FLAGS.batch_size)
-                print train_images
+                #print train_images
                 print train_labels
                 _, loss_value = sess.run([train_op, loss], feed_dict={images: train_images, labels:train_labels, learning_rate_node: FLAGS.learning_rate})
             elif FLAGS.training_data_type == 1:

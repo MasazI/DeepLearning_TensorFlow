@@ -1,5 +1,8 @@
 from kaffe.tensorflow import Network
 
+import caffenet_settings as settings
+FLAGS = settings.FLAGS
+
 class CaffeNet(Network):
     def setup(self):
         (self.feed('data')
@@ -15,5 +18,5 @@ class CaffeNet(Network):
              .max_pool(3, 3, 2, 2, padding='VALID', name='pool5')
              .fc(4096, name='fc6')
              .fc(4096, name='fc7')
-             .fc(5, relu=False, name='fc8')
+             .fc(FLAGS.num_classes, relu=False, name='fc8')
              .softmax(name='prob'))

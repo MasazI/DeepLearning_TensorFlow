@@ -30,7 +30,7 @@ class ImageInput(object):
 
         img = cv2.resize(img, (resize_height, resize_width))
         img = img.astype(np.float32)
-        img -= self.mean
+        #img -= self.mean
         h, w, c = img.shape
         crop_height, crop_width = ((h-crop_size)/2, (w-crop_size)/2)
         img = img[crop_height:crop_height+crop_size, crop_width:crop_width+crop_size, :]

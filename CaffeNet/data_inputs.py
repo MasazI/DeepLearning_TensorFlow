@@ -44,7 +44,7 @@ def distorted_inputs(tfrecords_file):
     create inputs with real time augumentation.
     '''
     print tfrecords_file
-    filename_queue = tf.train.string_input_producer([tfrecords_file]) # ここで指定したepoch数はtrainableになるので注意
+    filename_queue = tf.train.string_input_producer([tfrecords_file], shuffle=True) # ここで指定したepoch数はtrainableになるので注意
     read_input = data.read(filename_queue)
     reshaped_image = tf.cast(read_input.image, tf.float32)
 

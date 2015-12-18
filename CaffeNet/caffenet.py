@@ -1,7 +1,12 @@
+# encoding: utf-8
 from kaffe.tensorflow import Network
 
 import caffenet_settings as settings
 FLAGS = settings.FLAGS
+
+import tensorflow as tf
+import numpy as np
+
 
 class CaffeNet(Network):
     def setup(self):
@@ -20,3 +25,15 @@ class CaffeNet(Network):
              .fc(4096, name='fc7')
              .fc(FLAGS.num_classes, relu=False, name='fc8')
              .softmax(name='prob'))
+
+    def load(self, trained_model, session):
+        data_dict = np.load(trained_model).item()
+        for key in data_dict:
+            # fc層の学習済みパラメータは使用しない
+            if key in ['fc6', 'fc7', 'fc8']:
+                continue
+            print('load trained weight. key: %s' % (key))
+            with tf.variable_scope(key, reuse=True):
+                for subkey, data in zip(('weights', 'biases'), data_dict[key]):
+                    session.run(tf.get_variable(subkey).assign(data))
+        

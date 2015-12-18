@@ -58,9 +58,9 @@ def _activation_summary(x):
     tf.scalar_summary(tensor_name + '/sparsity', tf.nn.zero_fraction(x))
 
 
-def inference(images):
+def inference(images, finetune=False):
     net = Net({'data': images})
-    return net.get_output()
+    return net, net.get_output()
 
 
 def loss(logits, labels):

@@ -18,9 +18,6 @@ import data_inputs
 import caffenet_settings as settings
 FLAGS = settings.FLAGS
 
-# net
-from caffenet import CaffeNet as Net
-
 NUM_CLASSES = FLAGS.num_classes
 LEARNING_RATE_DECAY_FACTOR = FLAGS.learning_rate_decay_factor
 INITIAL_LEARNING_RATE = FLAGS.learning_rate
@@ -58,9 +55,103 @@ def _activation_summary(x):
     tf.scalar_summary(tensor_name + '/sparsity', tf.nn.zero_fraction(x))
 
 
-def inference(images, finetune=False):
-    net = Net({'data': images})
-    return net, net.get_output()
+def inference(images):
+    'conv1 kernel 11x11, stride 4, output_map 55x55x96, af ReL'
+    with tf.variable_scope('conv1') as scope:
+        kernel = _variable_with_weight_decay('weights', shape=[11, 11, 3, 96], stddev=1e-4, wd=0.0)
+        conv = tf.nn.conv2d(images, kernel, [1, 4, 4, 1], padding='VALID')
+        biases = _variable_on_cpu('biases', [96], tf.constant_initializer(0.0))
+        bias = tf.nn.bias_add(conv, biases)
+        conv1 = tf.nn.relu(bias, name=scope.name)
+        _activation_summary(conv1)
+
+    'pool1 kernel 3x3, stride 2, output_map 27x27x96'
+    pool1 = tf.nn.max_pool(conv1, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='VALID', name='pool1')
+
+    'norm1 kernel 5x5 stride 1, output_map 27x27x96'
+    norm1 = tf.nn.local_response_normalization(pool1, 5, bias=1.0, alpha=2e-05, beta=0.75, name='norm1')
+
+    'conv2 kernel 5x5, stride 1, output_map 27x27x256, af ReL'
+    with tf.variable_scope('conv2') as scope:
+        kernel = _variable_with_weight_decay('weights', shape=[5, 5, 96, 256], stddev=1e-4, wd=0.0)
+        conv = tf.nn.conv2d(norm1, kernel, [1, 1, 1, 1], padding='SAME')
+        biases = _variable_on_cpu('biases', [256], tf.constant_initializer(0.1))
+        bias = tf.nn.bias_add(conv, biases)
+        conv2 = tf.nn.relu(bias, name=scope.name)
+        _activation_summary(conv2)
+
+    'pool2 kernel 3x3, stride 2, output_map 13x13x256'
+    pool2 = tf.nn.max_pool(conv2, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='VALID', name='pool2')
+    
+    'norm2 kernel 5x5, stride 1, output_map 13x13x256'
+    norm2 = tf.nn.local_response_normalization(pool2, 5, bias=1.0, alpha=2e-05, beta=0.75, name='norm2')
+
+    'conv3 kernel 3x3, stride 1, output_map 13x13x384'
+    with tf.variable_scope('conv3') as scope:
+        kernel = _variable_with_weight_decay('weights', shape=[3, 3, 256, 384], stddev=1e-4, wd=0.0)
+        conv = tf.nn.conv2d(norm2, kernel, [1, 1, 1, 1], padding='SAME')
+        biases = _variable_on_cpu('biases', [384], tf.constant_initializer(0.1))
+        bias = tf.nn.bias_add(conv, biases)
+        conv3 = tf.nn.relu(bias, name=scope.name)
+        _activation_summary(conv3)
+
+    'conv4 kernel 3x3, stride 1, output_map 13x13x384'
+    with tf.variable_scope('conv4') as scope:
+        kernel = _variable_with_weight_decay('weights', shape=[3, 3, 384, 384], stddev=1e-4, wd=0.0)
+        conv = tf.nn.conv2d(conv3, kernel, [1, 1, 1, 1], padding='SAME')
+        biases = _variable_on_cpu('biases', [384], tf.constant_initializer(0.1))
+        bias = tf.nn.bias_add(conv, biases)
+        conv4 = tf.nn.relu(bias, name=scope.name)
+        _activation_summary(conv4)
+
+    'conv5 kernel 3x3, stride 1, output_map 13x13x256'
+    with tf.variable_scope('conv5') as scope:
+        kernel = _variable_with_weight_decay('weights', shape=[3, 3, 384, 256], stddev=1e-4, wd=0.0)
+        conv = tf.nn.conv2d(conv3, kernel, [1, 1, 1, 1], padding='SAME')
+        biases = _variable_on_cpu('biases', [256], tf.constant_initializer(0.1))
+        bias = tf.nn.bias_add(conv, biases)
+        conv5 = tf.nn.relu(bias, name=scope.name)
+        _activation_summary(conv5)
+
+
+    'pool5 kernel 3x3, stride 2, output_map 6x6x256'
+    pool5 = tf.nn.max_pool(conv5, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='VALID', name='pool5')
+    
+    'fc6 output_map 1x1x4096'
+    with tf.variable_scope('fc6'):
+        input_shape = pool5.get_shape()
+        dim = 1
+        for d in input_shape[1:].as_list():
+            dim *= d
+        pool5_flat = tf.reshape(pool5, [FLAGS.batch_size, dim])
+        weights = _variable_with_weight_decay('weights', [dim, 4096], stddev=1/256.0, wd=0.0)
+        biases = _variable_on_cpu('biases', 4096, tf.constant_initializer(0.0))
+        fc6 = tf.nn.relu_layer(pool5_flat, weights, biases, name=scope.name)
+        _activation_summary(fc6)
+
+    'fc6_dropout dropout 0.5'
+    fc6_dropout = tf.nn.dropout(fc6, 0.5)
+
+    'fc7 output_map 1x1x4096'
+    with tf.variable_scope('fc7'):
+        input_shape = fc6_dropout.get_shape()
+        inputs_fc7, dim = (fc6_dropout, int(input_shape[-1]))
+        weights = _variable_with_weight_decay('weights', [4096, 4096], stddev=1/256.0, wd=0.0)
+        biases = _variable_on_cpu('biases', 4096, tf.constant_initializer(0.0))
+        fc7 = tf.nn.relu_layer(inputs_fc7, weights, biases, name=scope.name)
+        _activation_summary(fc7)
+
+    'fc7_dropout dropout 0.5'
+    fc7_dropout = tf.nn.dropout(fc7, 0.5)
+
+    'fc8(softmax) output_map 1x1xNUM_CLASSES'
+    with tf.variable_scope('softmax_linear') as scope:
+        weights = _variable_with_weight_decay('weights', [4096, NUM_CLASSES], stddev=1/4096.0, wd=0.0)
+        biases = _variable_on_cpu('biases', [NUM_CLASSES], tf.constant_initializer(0.0))
+        softmax_linear = tf.nn.xw_plus_b(fc7_dropout, weights, biases, name=scope.name)
+        _activation_summary(softmax_linear)
+
+    return softmax_linear
 
 
 def loss(logits, labels):

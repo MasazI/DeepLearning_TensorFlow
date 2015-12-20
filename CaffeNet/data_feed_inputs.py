@@ -10,8 +10,6 @@ import tensorflow as tf
 import caffenet_settings as settings
 FLAGS = settings.FLAGS
 
-from caffenet import CaffeNet
-
 class ImageInput(object):
     def __init__(self, examples_path):
         gt_lines = open(examples_path).readlines()
@@ -30,7 +28,8 @@ class ImageInput(object):
 
         img = cv2.resize(img, (resize_height, resize_width))
         img = img.astype(np.float32)
-        #img -= self.mean
+        # Fine Tuningの際は注意すること
+        # img -= self.mean
         h, w, c = img.shape
         crop_height, crop_width = ((h-crop_size)/2, (w-crop_size)/2)
         img = img[crop_height:crop_height+crop_size, crop_width:crop_width+crop_size, :]

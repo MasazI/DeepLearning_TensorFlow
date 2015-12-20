@@ -31,6 +31,9 @@ MAX_STEPS = FLAGS.max_steps
 LOG_DEVICE_PLACEMENT = FLAGS.log_device_placement
 
 BATCH_SIZE = FLAGS.batch_size
+FINE_TUNING = FLAGS.fine_tuning
+
+TF_RECORDS = FLAGS.train_tfrecords
 
 def train():
     '''
@@ -49,10 +52,11 @@ def train():
             learning_rate_node = tf.placeholder(tf.float32, shape=[])
         elif FLAGS.training_data_type == 1:
             # tfrecords inputs
-            images, labels = data_inputs.distorted_inputs('data/train_caltech_random.tfrecords')
+            images, labels = data_inputs.distorted_inputs(TF_RECORDS)
 
         # graphのoutput
-        net, logits = model.inference(images)
+        # net, logits = model.inference(images)
+        logits = model.inference(images)
 
         # loss graphのoutputとlabelを利用
         loss = model.loss(logits, labels)
@@ -77,7 +81,9 @@ def train():
         sess.run(init_op)
 
         # 学習済みパラメータのロード
-        net.load('trained_model/caffenet.npy', sess)
+        if FINE_TUNING:
+            print('fine tuning. trained_model: %s' % (FLAGS.trained_model))
+            net.load(FLAGS.trained_model, sess)
 
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(sess=sess, coord=coord)

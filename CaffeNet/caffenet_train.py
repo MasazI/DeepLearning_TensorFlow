@@ -56,7 +56,7 @@ def train():
 
         # graphのoutput
         # net, logits = model.inference(images)
-        logits = model.inference(images)
+        logits, kernel1 = model.inference(images)
 
         # loss graphのoutputとlabelを利用
         loss = model.loss(logits, labels)
@@ -83,7 +83,7 @@ def train():
         # 学習済みパラメータのロード
         if FINE_TUNING:
             print('fine tuning. trained_model: %s' % (FLAGS.trained_model))
-            net.load(FLAGS.trained_model, sess)
+            #net.load(FLAGS.trained_model, sess)
 
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(sess=sess, coord=coord)
@@ -103,7 +103,8 @@ def train():
                 _, loss_value = sess.run([train_op, loss], feed_dict={images: train_images, labels:train_labels, learning_rate_node: FLAGS.learning_rate})
             elif FLAGS.training_data_type == 1:
                 # tfrecords inputs
-                 _, loss_value = sess.run([train_op, loss])
+                #print kernel1.eval(session=sess)
+                _, loss_value = sess.run([train_op, loss])
             duration = time.time() - start_time
 
             assert not np.isnan(loss_value), 'Model diverged with loss = NaN'

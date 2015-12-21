@@ -55,15 +55,27 @@ def _activation_summary(x):
     tf.scalar_summary(tensor_name + '/sparsity', tf.nn.zero_fraction(x))
 
 
+def _filter_summary(x):
+    '''
+    filterの可視化サマリ
+    '''
+    x_input = tf.get_default_graph().as_graph_element(x)
+    x_viz = tf.transpose(x_input, perm=[3, 0, 1, 2])
+    #[:, :, :, : 0]
+    #pool5_flat = tf.reshape(pool5, [FLAGS.batch_size, dim])
+    tensor_name = re.sub('%s_[0-9]*/' % TOWER_NAME, '', x.op.name)
+    tf.image_summary(tensor_name + '/filters', x_viz, max_images=24)
+
 def inference(images):
     'conv1 kernel 11x11, stride 4, output_map 55x55x96, af ReL'
     with tf.variable_scope('conv1') as scope:
-        kernel = _variable_with_weight_decay('weights', shape=[11, 11, 3, 96], stddev=1e-4, wd=0.0)
-        conv = tf.nn.conv2d(images, kernel, [1, 4, 4, 1], padding='VALID')
+        kernel1 = _variable_with_weight_decay('weights', shape=[11, 11, 3, 96], stddev=1e-4, wd=0.0)
+        conv = tf.nn.conv2d(images, kernel1, [1, 4, 4, 1], padding='VALID')
         biases = _variable_on_cpu('biases', [96], tf.constant_initializer(0.0))
         bias = tf.nn.bias_add(conv, biases)
         conv1 = tf.nn.relu(bias, name=scope.name)
         _activation_summary(conv1)
+        _filter_summary(kernel1)
 
     'pool1 kernel 3x3, stride 2, output_map 27x27x96'
     pool1 = tf.nn.max_pool(conv1, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='VALID', name='pool1')
@@ -73,8 +85,8 @@ def inference(images):
 
     'conv2 kernel 5x5, stride 1, output_map 27x27x256, af ReL'
     with tf.variable_scope('conv2') as scope:
-        kernel = _variable_with_weight_decay('weights', shape=[5, 5, 96, 256], stddev=1e-4, wd=0.0)
-        conv = tf.nn.conv2d(norm1, kernel, [1, 1, 1, 1], padding='SAME')
+        kernel2 = _variable_with_weight_decay('weights', shape=[5, 5, 96, 256], stddev=1e-4, wd=0.0)
+        conv = tf.nn.conv2d(norm1, kernel2, [1, 1, 1, 1], padding='SAME')
         biases = _variable_on_cpu('biases', [256], tf.constant_initializer(0.1))
         bias = tf.nn.bias_add(conv, biases)
         conv2 = tf.nn.relu(bias, name=scope.name)
@@ -107,7 +119,7 @@ def inference(images):
     'conv5 kernel 3x3, stride 1, output_map 13x13x256'
     with tf.variable_scope('conv5') as scope:
         kernel = _variable_with_weight_decay('weights', shape=[3, 3, 384, 256], stddev=1e-4, wd=0.0)
-        conv = tf.nn.conv2d(conv3, kernel, [1, 1, 1, 1], padding='SAME')
+        conv = tf.nn.conv2d(conv4, kernel, [1, 1, 1, 1], padding='SAME')
         biases = _variable_on_cpu('biases', [256], tf.constant_initializer(0.1))
         bias = tf.nn.bias_add(conv, biases)
         conv5 = tf.nn.relu(bias, name=scope.name)
@@ -136,7 +148,7 @@ def inference(images):
     with tf.variable_scope('fc7'):
         input_shape = fc6_dropout.get_shape()
         inputs_fc7, dim = (fc6_dropout, int(input_shape[-1]))
-        weights = _variable_with_weight_decay('weights', [4096, 4096], stddev=1/256.0, wd=0.0)
+        weights = _variable_with_weight_decay('weights', [4096, 4096], stddev=1/4096.0, wd=0.0)
         biases = _variable_on_cpu('biases', 4096, tf.constant_initializer(0.0))
         fc7 = tf.nn.relu_layer(inputs_fc7, weights, biases, name=scope.name)
         _activation_summary(fc7)
@@ -151,7 +163,7 @@ def inference(images):
         softmax_linear = tf.nn.xw_plus_b(fc7_dropout, weights, biases, name=scope.name)
         _activation_summary(softmax_linear)
 
-    return softmax_linear
+    return softmax_linear, kernel1
 
 
 def loss(logits, labels):

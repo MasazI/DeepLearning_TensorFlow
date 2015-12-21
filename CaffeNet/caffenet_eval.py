@@ -64,7 +64,7 @@ def eval_once(saver, summary_writer, top_k_op, summary_op):
 def evaluate():
     with tf.Graph().as_default():
         # testデータのロード
-        images, labels = data_inputs.distorted_inputs('data/train_caltech.tfrecords')
+        images, labels = data_inputs.distorted_inputs('data/train_caltech_random.tfrecords')
         logits = model.inference(images)
 
         top_k_op = tf.nn.in_top_k(logits, labels, 1)

@@ -69,13 +69,13 @@ def _filter_summary(x):
 def inference(images):
     'conv1 kernel 11x11, stride 4, output_map 55x55x96, af ReL'
     with tf.variable_scope('conv1') as scope:
-        kernel1 = _variable_with_weight_decay('weights', shape=[11, 11, 3, 96], stddev=1e-4, wd=0.0)
-        conv = tf.nn.conv2d(images, kernel1, [1, 4, 4, 1], padding='VALID')
+        kernel = _variable_with_weight_decay('weights', shape=[11, 11, 3, 96], stddev=1e-4, wd=0.0)
+        conv = tf.nn.conv2d(images, kernel, [1, 4, 4, 1], padding='VALID')
         biases = _variable_on_cpu('biases', [96], tf.constant_initializer(0.0))
         bias = tf.nn.bias_add(conv, biases)
         conv1 = tf.nn.relu(bias, name=scope.name)
         _activation_summary(conv1)
-        _filter_summary(kernel1)
+        _filter_summary(kernel)
 
     'pool1 kernel 3x3, stride 2, output_map 27x27x96'
     pool1 = tf.nn.max_pool(conv1, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='VALID', name='pool1')
@@ -136,7 +136,7 @@ def inference(images):
         for d in input_shape[1:].as_list():
             dim *= d
         pool5_flat = tf.reshape(pool5, [FLAGS.batch_size, dim])
-        weights = _variable_with_weight_decay('weights', [dim, 4096], stddev=1/256.0, wd=0.0)
+        weights = _variable_with_weight_decay('weights', [dim, 4096], stddev=1/256.0, wd=0.04)
         biases = _variable_on_cpu('biases', 4096, tf.constant_initializer(0.0))
         fc6 = tf.nn.relu_layer(pool5_flat, weights, biases, name=scope.name)
         _activation_summary(fc6)
@@ -148,7 +148,7 @@ def inference(images):
     with tf.variable_scope('fc7'):
         input_shape = fc6_dropout.get_shape()
         inputs_fc7, dim = (fc6_dropout, int(input_shape[-1]))
-        weights = _variable_with_weight_decay('weights', [4096, 4096], stddev=1/4096.0, wd=0.0)
+        weights = _variable_with_weight_decay('weights', [4096, 4096], stddev=1/4096.0, wd=0.04)
         biases = _variable_on_cpu('biases', 4096, tf.constant_initializer(0.0))
         fc7 = tf.nn.relu_layer(inputs_fc7, weights, biases, name=scope.name)
         _activation_summary(fc7)
@@ -158,12 +158,12 @@ def inference(images):
 
     'fc8(softmax) output_map 1x1xNUM_CLASSES'
     with tf.variable_scope('softmax_linear') as scope:
-        weights = _variable_with_weight_decay('weights', [4096, NUM_CLASSES], stddev=1/4096.0, wd=0.0)
+        weights = _variable_with_weight_decay('weights', [4096, NUM_CLASSES], stddev=1/4096.0, wd=0.04)
         biases = _variable_on_cpu('biases', [NUM_CLASSES], tf.constant_initializer(0.0))
         softmax_linear = tf.nn.xw_plus_b(fc7_dropout, weights, biases, name=scope.name)
         _activation_summary(softmax_linear)
 
-    return softmax_linear, kernel1
+    return softmax_linear
 
 
 def loss(logits, labels):

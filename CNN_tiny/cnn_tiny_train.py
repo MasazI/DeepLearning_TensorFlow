@@ -7,6 +7,8 @@ import time
 import tensorflow.python.platform
 from tensorflow.python.platform import gfile
 
+from PIL import Image
+
 import numpy as np
 from six.moves import xrange
 import tensorflow as tf
@@ -27,7 +29,7 @@ FLAGS = settings.FLAGS
 TRAIN_DIR = FLAGS.train_dir
 MAX_STEPS = FLAGS.max_steps
 LOG_DEVICE_PLACEMENT = FLAGS.log_device_placement
-
+TF_RECORDS = FLAGS.train_tfrecords
 BATCH_SIZE = FLAGS.batch_size
 
 def train():
@@ -39,7 +41,7 @@ def train():
         global_step = tf.Variable(0, trainable=False)
 
         # 教師データ
-        images, labels = data_inputs.distorted_inputs('data/train.tfrecords')
+        images, labels = data_inputs.distorted_inputs(TF_RECORDS)
 
         # graphのoutput
         logits = model.inference(images)
@@ -90,10 +92,11 @@ def train():
 
                 # time, step数, loss, 1秒で実行できた事例数, バッチあたりの時間
                 format_str = '$s: step %d, loss = %.2f (%.1f examples/sec; %.3f sec/batch)'
-                print str(datetime.now()) + ': step' + str(step) + ', loss= '+ str(loss_value) + ' ' + str(examples_per_sec) + ' examples/sec; ' + str(sec_per_batch) + ' sec/batch '
+                print str(datetime.now()) + ': step' + str(step) + ', loss= '+ str(loss_value) + ' ' + str(examples_per_sec) + ' examples/sec; ' + str(sec_per_batch) + ' sec/batch'
 
             # 100回ごと
             if step % 100 == 0:
+                pass
                 summary_str = sess.run(summary_op)
                 # サマリーに書き込む
                 summary_writer.add_summary(summary_str, step)

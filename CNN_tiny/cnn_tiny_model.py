@@ -70,7 +70,7 @@ def inference(images):
         conv = tf.nn.conv2d(images, kernel, [1, 1, 1, 1], padding='SAME')
         biases = _variable_on_cpu('biases', [64], tf.constant_initializer(0.0))
         bias = tf.nn.bias_add(conv, biases)
-        conv1 = tf.nn.relu(bias, name=scope.name)
+        conv1 = tf.nn.relu6(bias, name=scope.name)
         _activation_summary(conv1)
 
     # pool1
@@ -135,8 +135,8 @@ def inference(images):
         weights = _variable_with_weight_decay(
             'weights',
             shape=[dim, 384],
-            stddev=0.04,
-            wd=0.004
+            stddev=1.0/dim,
+            wd=0.04
         )
         biases = _variable_on_cpu('biases', [384], tf.constant_initializer(0.1))
         local3 = tf.nn.relu_layer(reshape, weights, biases, name=scope.name)
@@ -147,8 +147,8 @@ def inference(images):
         weights = _variable_with_weight_decay(
             'weights',
             shape=[384, 192],
-            stddev=0.04,
-            wd=0.004    
+            stddev=1/384.0,
+            wd=0.04
         )
         biases = _variable_on_cpu('biases', [192], tf.constant_initializer(0.1))
         local4 = tf.nn.relu_layer(local3, weights, biases, name=scope.name)
@@ -160,7 +160,7 @@ def inference(images):
             'weights',
             [192, NUM_CLASSES],
             stddev=1/192.0,
-            wd=0.0
+            wd=0.04
         )
         biases = _variable_on_cpu('biases', [NUM_CLASSES], tf.constant_initializer(0.0))
         softmax_linear = tf.nn.xw_plus_b(local4, weights, biases, name=scope.name)

@@ -37,7 +37,7 @@ def read(filename_queue):
     result.image = tf.reshape(_image, shape)
 
     # normalize
-    # image = tf.cast(image, tf.float32) * (1. /255) - 0.5
+    #result.image = tf.cast(image, tf.float32) * (1. /255) - 0.5
 
     # dense label
     result.label = tf.cast(features['label'], tf.int32)

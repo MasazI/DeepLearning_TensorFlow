@@ -56,7 +56,7 @@ def train():
 
         # graphのoutput
         # net, logits = model.inference(images)
-        logits, kernel1 = model.inference(images)
+        logits = model.inference(images)
 
         # loss graphのoutputとlabelを利用
         loss = model.loss(logits, labels)

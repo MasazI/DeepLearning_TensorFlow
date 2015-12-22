@@ -13,6 +13,7 @@ import numpy as np
 import tensorflow as tf
 
 import cnn_tiny_model as model
+import data_inputs
 
 import cnn_tiny_settings as settings
 FLAGS = settings.FLAGS
@@ -64,7 +65,7 @@ def eval_once(saver, summary_writer, top_k_op, summary_op):
 def evaluate():
     with tf.Graph().as_default():
         # testデータのロード
-        images, labels = model.distorted_inputs('data/train.tfrecords')
+        images, labels = data_inputs.inputs('data/train_kirin_norm_32.tfrecords')
         logits = model.inference(images)
 
         top_k_op = tf.nn.in_top_k(logits, labels, 1)

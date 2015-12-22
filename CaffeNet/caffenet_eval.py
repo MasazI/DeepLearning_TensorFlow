@@ -17,6 +17,8 @@ import data_inputs
 import caffenet_settings as settings
 FLAGS = settings.FLAGS
 
+EVAL_TFRECORDS = FLAGS.eval_tfrecords
+
 def eval_once(saver, summary_writer, top_k_op, summary_op):
     '''
     run eval once.
@@ -64,7 +66,8 @@ def eval_once(saver, summary_writer, top_k_op, summary_op):
 def evaluate():
     with tf.Graph().as_default():
         # testデータのロード
-        images, labels = data_inputs.distorted_inputs('data/train_caltech_random.tfrecords')
+        print('EVAL DATA: %s' % (EVAL_TFRECORDS))
+        images, labels = data_inputs.distorted_inputs(EVAL_TFRECORDS)
         logits = model.inference(images)
 
         top_k_op = tf.nn.in_top_k(logits, labels, 1)

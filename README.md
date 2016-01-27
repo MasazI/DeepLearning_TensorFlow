@@ -16,11 +16,12 @@ add /path/to/.pyenv/versions/anaconda-2.0.1/bin/ into PATH
 ## CNN
 ### Caffenet
 
-train
- python caffenet_train.py
- 
-visualization
- tensorboard --logdir /Users/masai/source/tensorflow/CaffeNet/train --port=6006
+train  
+`python caffenet_train.py`
+
+
+visualization  
+`tensorboard --logdir /Users/masai/source/tensorflow/CaffeNet/train --port=6006`
 
 
 

@@ -125,7 +125,7 @@ def train():
                 print str(datetime.now()) + ': step' + str(step) + ', loss= '+ str(loss_value) + ' ' + str(examples_per_sec) + ' examples/sec; ' + str(sec_per_batch) + ' sec/batch '
 
             # 100回ごと
-            if step % 100 == 0:
+            if step % 10 == 0:
                 if FLAGS.training_data_type == 0:
                     summary_str = sess.run(summary_op, feed_dict={images: train_images, labels:train_labels})
                 elif FLAGS.training_data_type == 1:

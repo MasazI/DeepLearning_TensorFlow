@@ -7,6 +7,7 @@ import sys
 
 # tensorflow
 import tensorflow as tf
+import numpy as np
 
 # data
 import data
@@ -181,6 +182,7 @@ def loss(logits, labels):
 
     # target labelとの差を計算
     cross_entropy = tf.nn.softmax_cross_entropy_with_logits(
+        #tf.clip_by_value(logits, 1e-10, np.infty),
         logits,
         dense_labels,
         name='cross_entropy_per_example'

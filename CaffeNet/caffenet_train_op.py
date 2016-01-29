@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 import tensorflow as tf
-
+import numpy as np
 import caffenet_settings as settings
 FLAGS = settings.FLAGS
 
@@ -21,6 +21,28 @@ def _add_loss_summaries(total_loss):
         tf.scalar_summary(l.op.name, loss_averages.average(l))
 
     return loss_averages_op
+
+class ClippedAdamOptimizer(tf.train.AdamOptimizer):
+    '''
+    grads clipped to [0, infinity)
+    '''
+    def compute_gradients(self, loss, var_list=None, gate_gradients=tf.train.Optimizer.GATE_OP, aggregation_method=None):
+        grads_and_vars = super(ClippedAdamOptimizer, self).compute_gradients(loss)
+        return [(tf.clip_by_value(g, tf.zeros([], dtype=g.dtype), tf.constant(np.infty, dtype=g.dtype)), v) for g, v in grads_and_vars]
+
+
+class ClippedGradientDescentOptimizer(tf.train.GradientDescentOptimizer):
+    '''
+    gards clipped to [0, infinity)
+    '''
+    def compute_gradients(self, loss, var_list=None, gate_gradients=tf.train.Optimizer.GATE_OP, aggregation_method=None):
+        # Get unclipped gradients from the base class.
+        # `grads_and_vars` will be a list of (Tensor, Variable) pairs.
+        grads_and_vars = super(ClippedGradientDescentOptimizer, self).compute_gradients(loss)
+
+        # Return the gradients clipped to [0, \infty).
+        #return [(tf.clip_by_value(g, tf.zeros([], dtype=g.dtype), tf.constant(np.infty, dtype=g.dtype)), v) for g, v in grads_and_vars]
+        return [(tf.clip_by_value(g, tf.constant(1e-4, shape=[], dtype=g.dtype), tf.constant(np.infty, dtype=g.dtype)), v) for g, v in grads_and_vars]
 
 def train(total_loss, global_step):
     # epochあたりのmini batch数
@@ -42,7 +64,9 @@ def train(total_loss, global_step):
 
     # 勾配の計算
     with tf.control_dependencies([loss_averages_op]):
-        opt = tf.train.GradientDescentOptimizer(lr)
+        opt = ClippedGradientDescentOptimizer(lr)
+        #opt = ClippedAdamOptimizer(lr)
+        #opt = tf.train.GradientDescentOptimizer(lr)
         #opt = tf.train.AdamOptimizer(lr)
         grads = opt.compute_gradients(total_loss)
 

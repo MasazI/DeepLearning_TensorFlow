@@ -8,7 +8,7 @@ http://tensorflow.org/
 
 - LogisticRegression
 - MLP using tensorflow structure and tensorboard
-- AlexNet 2010
+- CNN_tiny(AlexNet 2010)
 - CaffeNet(AlexNet 2012)
 - BatchNormalization
 

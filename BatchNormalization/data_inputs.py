@@ -16,6 +16,7 @@ import settings
 FLAGS = settings.FLAGS
 
 CROP_SIZE = FLAGS.crop_size
+IMAGE_DEPTH = FLAGS.image_depth
 BATCH_SIZE = FLAGS.batch_size
 NUM_THREADS = FLAGS.num_threads
 
@@ -52,7 +53,10 @@ def distorted_inputs(tfrecords_file):
     width = CROP_SIZE
 
     # crop
-    distorted_image = tf.image.random_crop(reshaped_image, [height, width]) 
+    if tf.__version__[2] == '7': 
+        distorted_image = tf.random_crop(reshaped_image, [height, width, IMAGE_DEPTH])
+    else:    
+        distorted_image = tf.image.random_crop(reshaped_image, [height, width]) 
 
     # flip 対称性のある物体の場合はONにする
     #distorted_image = tf.image.random_flip_left_right(distorted_image)

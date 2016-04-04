@@ -8,20 +8,25 @@ http://tensorflow.org/
 
 - LogisticRegression
 - MLP using tensorflow structure and tensorboard
-- CNN
+- AlexNet 2010
+- CaffeNet(AlexNet 2012)
+- BatchNormalization
 
 if you use pyenv and anaconda:
 add /path/to/.pyenv/versions/anaconda-2.0.1/bin/ into PATH
 
 ## CNN
-### Caffenet
-
+### CaffeNet
 train  
 `python caffenet_train.py`
 
+### BatchNormalization
+train  
+`python train.py`
 
-visualization  
-`tensorboard --logdir /Users/masai/source/tensorflow/CaffeNet/train --port=6006`
+
+## visualization  
+`tensorboard --logdir /to/your/path/train --port=6006`
 
 
 

@@ -31,6 +31,8 @@ if __name__ == '__main__':
 
         for i in range(100):
             x, y = sess.run([features, target])
+            print tf.rank(x)
+            print tf.rank(y)
             print x, y
 
         coord.request_stop()

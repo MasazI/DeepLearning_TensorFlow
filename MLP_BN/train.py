@@ -20,7 +20,6 @@ import model_mlp as model
 import train_op as op
 
 # inputs
-import data_inputs
 import load
 
 # settings

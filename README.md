@@ -18,10 +18,12 @@ add /path/to/.pyenv/versions/anaconda-2.0.1/bin/ into PATH
 ## CNN
 ### CaffeNet
 train  
+cd CaffeNet and  
 `python caffenet_train.py`
 
 ### BatchNormalization
 train  
+cd BatchNormalization and  
 `python train.py`
 
 

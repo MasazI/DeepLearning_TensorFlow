@@ -47,7 +47,7 @@ def train():
 
         # 教師データ
         filename_queue = tf.train.string_input_producer(["data/airquality.csv"])
-        datas, targets = load.mini_batch(filename_queue)
+        datas, targets = load.mini_batch(filename_queue, BATCH_SIZE)
 
         # placeholder
         x = tf.placeholder(tf.float32, shape=[None, 5])

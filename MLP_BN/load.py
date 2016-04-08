@@ -22,12 +22,12 @@ def read(filename_queue):
     
     return features, targets
 
-def mini_batch(filename_queue):
+def mini_batch(filename_queue, mini_batch_size):
     feature, target = read(filename_queue)
 
     min_after_dequeue = 10000
-    capacity = min_after_dequeue + 3 * 5
-    features, targets = tf.train.shuffle_batch([feature, target], batch_size=5, capacity=capacity, min_after_dequeue=min_after_dequeue)
+    capacity = min_after_dequeue + 3 * mini_batch_size
+    features, targets = tf.train.shuffle_batch([feature, target], batch_size=mini_batch_size, capacity=capacity, min_after_dequeue=min_after_dequeue)
 
     return features, targets
 

@@ -6,6 +6,8 @@ http://tensorflow.org/
 
 ## Features
 
+- Loading Data
+- Createing mini-batch
 - LogisticRegression
 - MLP using tensorflow structure and tensorboard
 - CNN_tiny(AlexNet 2010)

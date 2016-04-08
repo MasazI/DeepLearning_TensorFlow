@@ -46,16 +46,17 @@ if __name__ == '__main__':
         print('No checkpoint file found.')
         quit()
 
-    # predict
+    # create threads
     coord = tf.train.Coordinator()
     threads = tf.train.start_queue_runners(coord=coord)
 
+    # predict
     for i in xrange(10):
         start_time = time.time()
-        x,_ = sess.run([feature, data])
-        predict_value = logits.eval(feed_dict={data_placeholder: x}) [0]
+        x, y = sess.run([feature, data])
+        predict_value = logits.eval(feed_dict={data_placeholder: x})
         duration = time.time() - start_time
-        print('No.%d: feature: %s, predict: %f, duration: %f (sec)' % (i, x, predict_value, duration))
+        print('No.%d: feature: %s, truth: %f, predict: %f, duration: %f (sec)' % (i, x, y, predict_value, duration))
 
     coord.request_stop()
     coord.join(threads)

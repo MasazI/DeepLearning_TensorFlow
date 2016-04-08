@@ -77,11 +77,11 @@ def inference(inputs):
             stddev=0.04,
             wd=0.004
         )
-        #biases = _variable_on_cpu('biases', [8], tf.constant_initializer(0.1))
-        bn1 = batch_normalization(4, tf.matmul(inputs, weights))
-        local1 = tf.nn.relu(bn1)
+        biases = _variable_on_cpu('biases', [4], tf.constant_initializer(0.1))
+        #bn1 = batch_normalization(4, tf.matmul(inputs, weights))
+        #local1 = tf.nn.relu(bn1)
         #inner_product = tf.matmul(inputs, weights)
-        #local1 = tf.nn.relu(tf.add(tf.matmul(inputs, weights), biases))
+        local1 = tf.nn.relu(tf.add(tf.matmul(inputs, weights), biases))
         #local1 = tf.nn.relu_layer(inputs, weights, biases, name=scope.name)
         _activation_summary(local1)
     # softmax

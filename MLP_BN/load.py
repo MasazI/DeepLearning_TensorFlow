@@ -34,7 +34,7 @@ def mini_batch(filename_queue, mini_batch_size):
 
 if __name__ == '__main__':
     filename_queue = tf.train.string_input_producer(["data/airquality.csv"])
-    features, targets = mini_batch(filename_queue)
+    features, targets = mini_batch(filename_queue, 1)
 
 
     with tf.Session() as sess:

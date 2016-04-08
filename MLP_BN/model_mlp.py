@@ -73,22 +73,23 @@ def inference(inputs):
     with tf.variable_scope('fc1') as scope:
         weights = _variable_with_weight_decay(
             'weights',
-            shape=[5, 3],
+            shape=[5, 4],
             stddev=0.04,
             wd=0.004
         )
-        biases = _variable_on_cpu('biases', [3], tf.constant_initializer(0.1))
-        #bn1 = batch_normalization(10, tf.matmul(inputs, weights))
-        #local1 = tf.nn.relu(bn1)
-        local1 = tf.nn.relu(tf.add(tf.matmul(inputs, weights), biases))
+        #biases = _variable_on_cpu('biases', [8], tf.constant_initializer(0.1))
+        bn1 = batch_normalization(4, tf.matmul(inputs, weights))
+        local1 = tf.nn.relu(bn1)
+        #inner_product = tf.matmul(inputs, weights)
+        #local1 = tf.nn.relu(tf.add(tf.matmul(inputs, weights), biases))
         #local1 = tf.nn.relu_layer(inputs, weights, biases, name=scope.name)
         _activation_summary(local1)
     # softmax
     with tf.variable_scope('softmax_linear') as scope:
         weights = _variable_with_weight_decay(
             'weights',
-            [3, NUM_CLASSES],
-            stddev=1/192.0,
+            [4, NUM_CLASSES],
+            stddev=0.04,
             wd=0.0
         )
         biases = _variable_on_cpu('biases', [NUM_CLASSES], tf.constant_initializer(0.0))
@@ -97,10 +98,13 @@ def inference(inputs):
 
     return linear
 
-    
+
+def debug(data):
+    return data
+
 def loss(logits, targets):
-    cost = tf.reduce_sum(tf.pow(logits - targets), 2)
-    cost_mean = tf.reduce_mean(cross_entropy, name='cross_entropy')
+    cost = tf.reduce_sum(tf.pow(logits - targets, 2))
+    cost_mean = tf.reduce_mean(cost, name='cross_entropy')
     tf.add_to_collection('losses', cost_mean)
 
     return tf.add_n(tf.get_collection('losses'), name='total_loss')

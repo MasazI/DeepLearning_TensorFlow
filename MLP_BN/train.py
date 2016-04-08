@@ -47,13 +47,19 @@ def train():
 
         # 教師データ
         filename_queue = tf.train.string_input_producer(["data/airquality.csv"])
-        datas, targets = load.read(filename_queue)
+        datas, targets = load.mini_batch(filename_queue)
+
+        # placeholder
+        x = tf.placeholder(tf.float32, shape=[None, 5])
+        y = tf.placeholder(tf.float32, shape=[None, 1])
 
         # graphのoutput
-        logits = model.inference(datas)
+        logits = model.inference(x)
+
+        debug_value = model.debug(logits)
 
         # loss graphのoutputとlabelを利用
-        loss = model.loss(logits, labels)
+        loss = model.loss(logits, y)
 
         # 学習オペレーション
         train_op = op.train(loss, global_step)
@@ -85,7 +91,9 @@ def train():
         # max_stepまで繰り返し学習
         for step in xrange(MAX_STEPS):
             start_time = time.time()
-            _, loss_value = sess.run([train_op, loss])
+            a, b = sess.run([datas, targets])
+            _, loss_value, predict_value = sess.run([train_op, loss, debug_value], feed_dict={x: a, y: b})
+
             duration = time.time() - start_time
 
             assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
@@ -105,12 +113,18 @@ def train():
                 format_str = '$s: step %d, loss = %.2f (%.1f examples/sec; %.3f sec/batch)'
                 print str(datetime.now()) + ': step' + str(step) + ', loss= '+ str(loss_value) + ' ' + str(examples_per_sec) + ' examples/sec; ' + str(sec_per_batch) + ' sec/batch'
 
+                print "x", a
+                print "ground truth:", b
+                print "predict: ", predict_value
+
+
+
             # 100回ごと
             if step % 100 == 0:
                 pass
-                summary_str = sess.run(summary_op)
+                #summary_str = sess.run(summary_op)
                 # サマリーに書き込む
-                summary_writer.add_summary(summary_str, step)
+                #summary_writer.add_summary(summary_str, step)
 
             if step % 1000 == 0 or (step * 1) == MAX_STEPS:
                 checkpoint_path = TRAIN_DIR + model_name

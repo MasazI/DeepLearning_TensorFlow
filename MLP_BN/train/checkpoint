@@ -1,0 +1,6 @@
+model_checkpoint_path: "model20160408144444.ckpt-176000"
+all_model_checkpoint_paths: "model20160408144444.ckpt-172000"
+all_model_checkpoint_paths: "model20160408144444.ckpt-173000"
+all_model_checkpoint_paths: "model20160408144444.ckpt-174000"
+all_model_checkpoint_paths: "model20160408144444.ckpt-175000"
+all_model_checkpoint_paths: "model20160408144444.ckpt-176000"

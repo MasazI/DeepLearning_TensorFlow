@@ -6,7 +6,7 @@ flags = tf.app.flags
 FLAGS = flags.FLAGS
 
 # train settings
-flags.DEFINE_integer('batch_size', 1, 'the number of images in a batch.')
+flags.DEFINE_integer('batch_size', 10, 'the number of images in a batch.')
 flags.DEFINE_string('train_tfrecords', 'data/train.tfrecords', 'path to tfrecords file for train.')
 flags.DEFINE_integer('image_height', 28, 'image height.')
 flags.DEFINE_integer('image_width', 28, 'image width.')

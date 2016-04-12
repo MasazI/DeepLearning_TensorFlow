@@ -65,12 +65,13 @@ def _activation_summary(x):
     tf.scalar_summary(tensor_name + '/sparsity', tf.nn.zero_fraction(x))
 
 
-def inference(inputs):
+def inference(inputs, name):
     '''
     アーキテクチャの定義、グラフのビルド
     '''
     # layer1
-    with tf.variable_scope('fc1') as scope:
+    layer1_name = 'fc1_' + name
+    with tf.variable_scope(layer1_name) as scope:
         weights = _variable_with_weight_decay(
             'weights',
             shape=[5, 4],
@@ -85,7 +86,8 @@ def inference(inputs):
         #local1 = tf.nn.relu_layer(inputs, weights, biases, name=scope.name)
         _activation_summary(local1)
     # softmax
-    with tf.variable_scope('softmax_linear') as scope:
+    layer2_name = 'fc2_' + name
+    with tf.variable_scope(layer2_name) as scope:
         weights = _variable_with_weight_decay(
             'weights',
             [4, NUM_CLASSES],
@@ -102,12 +104,15 @@ def inference(inputs):
 def debug(data):
     return data
 
-def loss(logits, targets):
+def loss(logits, targets, name):
     cost = tf.reduce_sum(tf.pow(logits - targets, 2))
-    cost_mean = tf.reduce_mean(cost, name='cross_entropy')
-    tf.add_to_collection('losses', cost_mean)
+    cost_mean_name = 'cost_' + name
+    cost_mean = tf.reduce_mean(cost, name=cost_mean_name)
+    losses_name = 'losses_' + name
+    tf.add_to_collection(losses_name, cost_mean)
 
-    return tf.add_n(tf.get_collection('losses'), name='total_loss')
+    total_name = 'total_loss_' + name
+    return tf.add_n(tf.get_collection(losses_name), name=total_name)
 
 
 def _add_loss_summaries(total_loss):

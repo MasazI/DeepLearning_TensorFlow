@@ -29,7 +29,8 @@ if __name__ == '__main__':
     feature, data = load.mini_batch(filename_queue, 1)
     data_placeholder = tf.placeholder("float", shape=(None, 5))
     
-    logits = model_mlp.inference(data_placeholder)
+    logits_maru = model_mlp.inference(data_placeholder, 'maru')
+    logits_batsu = model_mlp.inference(data_placeholder, 'batsu')
     sess = tf.InteractiveSession()
 
     saver = tf.train.Saver()
@@ -54,9 +55,10 @@ if __name__ == '__main__':
     for i in xrange(10):
         start_time = time.time()
         x, y = sess.run([feature, data])
-        predict_value = logits.eval(feed_dict={data_placeholder: x})
+        predict_value_maru = logits_maru.eval(feed_dict={data_placeholder: x})
+        predict_value_batsu = logits_batsu.eval(feed_dict={data_placeholder: x})
         duration = time.time() - start_time
-        print('No.%d: feature: %s, truth: %f, predict: %f, duration: %f (sec)' % (i, x, y, predict_value, duration))
+        print('No.%d: feature: %s, truth: %f, predict_maru: %f, predict_batsu: %f, duration: %f (sec)' % (i, x, y, predict_value_maru, predict_value_batsu, duration))
 
     coord.request_stop()
     coord.join(threads)

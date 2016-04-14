@@ -10,6 +10,7 @@ http://tensorflow.org/
 - Createing mini-batch
 - LogisticRegression
 - MLP using tensorflow structure and tensorboard
+- CNN_minit(AlexNet 2010) for new algorithm experiments
 - CNN_tiny(AlexNet 2010)
 - CaffeNet(AlexNet 2012)
 - BatchNormalization

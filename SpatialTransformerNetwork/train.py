@@ -32,6 +32,15 @@ LOG_DEVICE_PLACEMENT = FLAGS.log_device_placement
 TF_RECORDS = FLAGS.train_tfrecords
 BATCH_SIZE = FLAGS.batch_size
 
+def dense_to_one_hot(labels, n_classes=2):
+    """Convert class labels from scalars to one-hot vectors."""
+    labels = np.array(labels)
+    n_labels = labels.shape[0]
+    index_offset = np.arange(n_labels) * n_classes
+    labels_one_hot = np.zeros((n_labels, n_classes), dtype=np.float32)
+    labels_one_hot.flat[index_offset + labels.ravel()] = 1
+    return labels_one_hot
+
 def train():
     '''
     Train CNN_tiny for a number of steps.
@@ -98,15 +107,22 @@ def train():
 
         # サマリーのライターを設定
         summary_writer = tf.train.SummaryWriter(TRAIN_DIR, graph_def=sess.graph_def)
-   
+  
+        # mini-batch用インデックス
+        iter_per_epoch = 100
+        n_epochs = MAX_STEPS
+        indices = np.linspace(0, 10000 - 1, iter_per_epoch)
+        indices = indices.astype('int')
+ 
         # max_stepまで繰り返し学習
-        for step in xrange(MAX_STEPS):
+        for step in xrange(n_epochs):
             start_time = time.time()
-            for start, end in zip(range(0, len(trX), BATCH_SIZE), range(BATCH_SIZE, len(trX), BATCH_SIZE)):
-                _, loss_value = sess.run([train_op, loss], feed_dict={images: trX[start:end], labels: trY[start:end]})
-                
-            duration = time.time() - start_time
+            for iter_i in range(iter_per_epoch - 1):
+                batch_xs = X_train[indices[iter_i]:indices[iter_i+BATCH_SIZE]]
+                batch_ys = Y_train[indices[iter_i]:indices[iter_i+BATCH_SIZE]]
 
+                _, loss_value = sess.run([train_op, loss], feed_dict={images: batch_xs, labels: batch_ys})
+            duration = time.time() - start_time
             assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
 
             # 3回ごと

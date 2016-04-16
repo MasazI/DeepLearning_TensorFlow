@@ -46,7 +46,7 @@ def train():
         mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
         trX, trY, teX, teY = mnist.train.images, mnist.train.labels, mnist.test.images, mnist.test.labels
         trX = trX.reshape(-1, 28, 28, 1)
-        #teX = teX.reshape(-1, 28, 28, 1)
+        teX = teX.reshape(-1, 28, 28, 1)
 
         # create mini_batch
         #datas, targets = trX.(trX, trY, BATCH_SIZE)
@@ -58,10 +58,14 @@ def train():
         logits = model.inference(images)
 
         # loss graphのoutputとlabelを利用
-        loss = model.loss(logits, labels)
+        #loss = model.loss(logits, labels)
+        
+        loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits, labels))
+        train_op = tf.train.RMSPropOptimizer(0.001, 0.9).minimize(loss)
+        predict_op = tf.argmax(logits, 1)
 
         # 学習オペレーション
-        train_op = op.train(loss, global_step)
+        #train_op = op.train(loss, global_step)
 
         # saver
         saver = tf.train.Saver(tf.all_variables())
@@ -82,47 +86,45 @@ def train():
         # サマリーのライターを設定
         summary_writer = tf.train.SummaryWriter(TRAIN_DIR, graph_def=sess.graph_def)
   
-        predict_op = tf.argmax(logits, 1)
+        #predict_op = tf.argmax(logits, 1)
  
         # max_stepまで繰り返し学習
         for step in xrange(MAX_STEPS):
             start_time = time.time()
 
+            index = 0
             for start, end in zip(range(0, len(trX), BATCH_SIZE), range(BATCH_SIZE, len(trX), BATCH_SIZE)):
-                out, debug_loss = sess.run([predict_op, loss], feed_dict={images: trX[start:end], labels: trY[start:end]})
-                print out
-                print trY[start:end]
-                print debug_loss
                 _, loss_value = sess.run([train_op, loss], feed_dict={images: trX[start:end], labels: trY[start:end]})
- 
-            duration = time.time() - start_time
+                if index % 10 == 0:
+                    end_time = time.time()
+                    duration = end_time - start_time
+                    num_examples_per_step = BATCH_SIZE * 10 * (step+1)
+                    examples_per_sec = num_examples_per_step / duration
+                    print("%s: %d[epoch]: %d[iteration]: train loss %f: %d[examples/step]: %f[examples/sec]: %f[sec/batch]" % (datetime.now(), step, index, loss_value, num_examples_per_step, examples_per_sec, duration))
+                    index += 1
+                    assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
 
-            assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
+                    test_indices = np.arange(len(teX)) # Get A Test Batch
+                    np.random.shuffle(test_indices)
+                    test_indices = test_indices[0:5]
+                    print "="*20
+                    print teY[test_indices]
+                    predict, cost_value = sess.run([predict_op, loss], feed_dict={images: teX[test_indices],
+                                                                     labels: teY[test_indices]})
+                    print predict
+                    print("test loss: %f" % (cost_value))
+                    print "="*20
 
-            # 3回ごと
-            if step % 1 == 0:
-                # stepごとの事例数 = mini batch size
-                #num_examples_per_step = BATCH_SIZE
-                num_examples_per_step = 20
-
-                # 1秒ごとの事例数
-                examples_per_sec = num_examples_per_step / duration
+                index += 1
+                assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
                 
-                # バッチごとの時間
-                sec_per_batch = float(duration)
-
-                # time, step数, loss, 1秒で実行できた事例数, バッチあたりの時間
-                format_str = '$s: step %d, loss = %.2f (%.1f examples/sec; %.3f sec/batch)'
-                print str(datetime.now()) + ': step' + str(step) + ', loss= '+ str(loss_value) + ' ' + str(examples_per_sec) + ' examples/sec; ' + str(sec_per_batch) + ' sec/batch'
-
-            # 10回ごと
-            if step % 10 == 0:
-                pass
-                #summary_str = sess.run(summary_op)
-                # サマリーに書き込む
-                #summary_writer.add_summary(summary_str, step)
-
-            if step % 1000 == 0 or (step * 1) == MAX_STEPS:
+                # 1000回ごと
+                if index % 1000 == 0:
+                    pass
+                    #summary_str = sess.run(summary_op)
+                    # サマリーに書き込む
+                    #summary_writer.add_summary(summary_str, step)
+            if step % 1 == 0 or (step * 1) == MAX_STEPS:
                 checkpoint_path = TRAIN_DIR + '/model.ckpt'
                 saver.save(sess, checkpoint_path, global_step=step)
 

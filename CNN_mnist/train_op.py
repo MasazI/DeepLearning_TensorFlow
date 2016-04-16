@@ -49,6 +49,9 @@ class ClippedGradientDescentOptimizer(tf.train.GradientDescentOptimizer):
 
 
 def train(total_loss, global_step):
+    train_op = tf.train.RMSPropOptimizer(0.01, 0.9).minimize(total_loss)
+    return train_op
+
     # epochあたりのmini batch数
     num_batches_per_epoch = NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN / FLAGS.batch_size
     # 重み減衰のステップ 減衰あたりのmini batch数

@@ -55,17 +55,18 @@ def inference(images):
     '''
     # conv1
     with tf.variable_scope('conv1') as scope:
-        kernel = _variable_with_weight_decay(
-            'weights',
-            shape=[3, 3, 1, 32],
-            stddev=1e-4,
-            wd=0.0 # not use weight decay
-        )
+        #kernel = _variable_with_weight_decay(
+        #    'weights',
+        #    shape=[3, 3, 1, 32],
+        #    stddev=1e-4,
+        #    wd=0.0 # not use weight decay
+        #)
+        kernel = tf.Variable(tf.random_normal([3, 3, 1, 32], stddev=0.01), name="weights")
         conv = tf.nn.conv2d(images, kernel, [1, 1, 1, 1], padding='SAME')
-        biases = _variable_on_cpu('biases', [32], tf.constant_initializer(0.0))
-        bias = tf.nn.bias_add(conv, biases)
-        conv1 = tf.nn.relu6(bias, name=scope.name)
-        _activation_summary(conv1)
+        #biases = _variable_on_cpu('biases', [32], tf.constant_initializer(0.0))
+        #bias = tf.nn.bias_add(conv, biases)
+        conv1 = tf.nn.relu(conv, name=scope.name)
+        #_activation_summary(conv1)
 
     # pool1
     pool1 = tf.nn.max_pool(
@@ -76,40 +77,23 @@ def inference(images):
         name='pool1'
     )
 
-    # norm1
-    #norm1 = tf.nn.lrn(
-    #    pool1,
-    #    4,
-    #    bias=1.0,
-    #    alpha=0.001/9.0,
-    #    beta=0.75,
-    #    name='norm1'
-    #)
+    dropout1 = tf.nn.dropout(pool1, 0.8)
 
     # conv2
     with tf.variable_scope('conv2') as scope:
-        kernel = _variable_with_weight_decay(
-            'weights',
-            shape=[3, 3, 32, 64],
-            stddev=1e-4,
-            wd=0.0 # not use weight decay
-        )
-        conv = tf.nn.conv2d(pool1, kernel, [1, 1, 1, 1], padding='SAME')
-        biases = _variable_on_cpu('biases', [64], tf.constant_initializer(0.1))
-        bias = tf.nn.bias_add(conv, biases)
-        conv2 = tf.nn.relu(bias, name=scope.name)
-        _activation_summary(conv2)
+        #kernel = _variable_with_weight_decay(
+        #    'weights',
+        #    shape=[3, 3, 32, 64],
+        #    stddev=1e-4,
+        #    wd=0.0 # not use weight decay
+        #)
+        kernel = tf.Variable(tf.random_normal([3, 3, 32, 64], stddev=0.01), name="weights")
+        conv = tf.nn.conv2d(dropout1, kernel, [1, 1, 1, 1], padding='SAME')
+        #biases = _variable_on_cpu('biases', [64], tf.constant_initializer(0.0))
+        #bias = tf.nn.bias_add(conv, biases)
+        conv2 = tf.nn.relu(conv, name=scope.name)
+        #_activation_summary(conv2)
     
-    # norm2
-    #norm2 = tf.nn.lrn(
-    #    conv2,
-    #    4,
-    #    bias=1.0,
-    #    alpha=0.001/9.0,
-    #    beta=0.75,
-    #    name='norm2'
-    #)
-
     # pool2
     pool2 = tf.nn.max_pool(
         conv2,
@@ -119,19 +103,22 @@ def inference(images):
         name='pool2'
     )
 
+    dropout2 = tf.nn.dropout(pool2, 0.5)
+
     # conv3
     with tf.variable_scope('conv3') as scope:
-        kernel = _variable_with_weight_decay(
-            'weights',
-            shape=[3, 3, 64, 128],
-            stddev=1e-4,
-            wd=0.0 # not use weight decay
-        )
-        conv = tf.nn.conv2d(pool2, kernel, [1, 1, 1, 1], padding='SAME')
-        biases = _variable_on_cpu('biases', [128], tf.constant_initializer(0.1))
-        bias = tf.nn.bias_add(conv, biases)
-        conv3 = tf.nn.relu(bias, name=scope.name)
-        _activation_summary(conv2)
+        #kernel = _variable_with_weight_decay(
+        #    'weights',
+        #    shape=[3, 3, 64, 128],
+        #    stddev=1e-4,
+        #    wd=0.0 # not use weight decay
+        #)
+        kernel = tf.Variable(tf.random_normal([3, 3, 64, 128], stddev=0.01), name="weights")
+        conv = tf.nn.conv2d(dropout2, kernel, [1, 1, 1, 1], padding='SAME')
+        #biases = _variable_on_cpu('biases', [128], tf.constant_initializer(0.0))
+        #bias = tf.nn.bias_add(conv, biases)
+        conv3 = tf.nn.relu(conv, name=scope.name)
+        #_activation_summary(conv3)
 
     # pool3
     pool3 = tf.nn.max_pool(
@@ -150,15 +137,22 @@ def inference(images):
             dim *= d
         reshape = tf.reshape(pool3, [-1, dim])
 
-        weights = _variable_with_weight_decay(
-            'weights',
-            shape=[dim, 625],
-            stddev=1.0/dim,
-            wd=0.04
-        )
-        biases = _variable_on_cpu('biases', [625], tf.constant_initializer(0.1))
-        local3 = tf.nn.relu_layer(reshape, weights, biases, name=scope.name)
-        _activation_summary(local3)
+        reshape = tf.nn.dropout(reshape, 0.8) 
+
+        #weights = _variable_with_weight_decay(
+        #    'weights',
+        #    shape=[dim, 625],
+        #    stddev=1.0/dim,
+        #    wd=0.0
+        #)
+
+        weights = tf.Variable(tf.random_normal([dim, 625], stddev=0.01), name="weights")
+        #biases = _variable_on_cpu('biases', [625], tf.constant_initializer(0.0))
+        #local3 = tf.nn.relu_layer(reshape, weights, biases, name=scope.name)
+        local3 = tf.nn.relu(tf.matmul(reshape, weights))
+        #_activation_summary(local3)
+
+    dropout3 = tf.nn.dropout(local3, 0.5)
 
     # softmax
     with tf.variable_scope('softmax_linear') as scope:
@@ -168,8 +162,10 @@ def inference(images):
             stddev=1/192.0,
             wd=0.0
         )
-        biases = _variable_on_cpu('biases', [NUM_CLASSES], tf.constant_initializer(0.0))
-        softmax_linear = tf.nn.xw_plus_b(local3, weights, biases, name=scope.name)
+        #weights = tf.Variable(tf.random_normal([625, NUM_CLASSES], stddev=0.01), name="weights")
+        #biases = _variable_on_cpu('biases', [NUM_CLASSES], tf.constant_initializer(0.0))
+        #softmax_linear = tf.nn.xw_plus_b(dropout3, weights, biases, name=scope.name)
+        softmax_linear = tf.matmul(dropout3, weights)
         _activation_summary(softmax_linear)
 
     return softmax_linear

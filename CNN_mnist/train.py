@@ -81,19 +81,26 @@ def train():
 
         # サマリーのライターを設定
         summary_writer = tf.train.SummaryWriter(TRAIN_DIR, graph_def=sess.graph_def)
-   
+  
+        predict_op = tf.argmax(logits, 1)
+ 
         # max_stepまで繰り返し学習
         for step in xrange(MAX_STEPS):
             start_time = time.time()
+
             for start, end in zip(range(0, len(trX), BATCH_SIZE), range(BATCH_SIZE, len(trX), BATCH_SIZE)):
+                out, debug_loss = sess.run([predict_op, loss], feed_dict={images: trX[start:end], labels: trY[start:end]})
+                print out
+                print trY[start:end]
+                print debug_loss
                 _, loss_value = sess.run([train_op, loss], feed_dict={images: trX[start:end], labels: trY[start:end]})
-                break
+ 
             duration = time.time() - start_time
 
             assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
 
-            # 10回ごと
-            if step % 10 == 0:
+            # 3回ごと
+            if step % 1 == 0:
                 # stepごとの事例数 = mini batch size
                 #num_examples_per_step = BATCH_SIZE
                 num_examples_per_step = 20
@@ -108,8 +115,8 @@ def train():
                 format_str = '$s: step %d, loss = %.2f (%.1f examples/sec; %.3f sec/batch)'
                 print str(datetime.now()) + ': step' + str(step) + ', loss= '+ str(loss_value) + ' ' + str(examples_per_sec) + ' examples/sec; ' + str(sec_per_batch) + ' sec/batch'
 
-            # 100回ごと
-            if step % 100 == 0:
+            # 10回ごと
+            if step % 10 == 0:
                 pass
                 #summary_str = sess.run(summary_op)
                 # サマリーに書き込む

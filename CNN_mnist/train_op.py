@@ -68,7 +68,7 @@ def train(total_loss, global_step):
 
     # 勾配の計算
     with tf.control_dependencies([loss_averages_op]):
-        opt = ClippedGradientDescentOptimizer(lr)
+        opt = tf.train.AdamOptimizer(lr)
         grads = opt.compute_gradients(total_loss)
 
     # 勾配を適用

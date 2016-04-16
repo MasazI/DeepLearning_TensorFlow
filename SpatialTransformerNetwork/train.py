@@ -21,6 +21,7 @@ import train_op as op
 
 # inputs
 #import data_inputs
+import input_data
 
 # settings
 import settings
@@ -32,14 +33,16 @@ LOG_DEVICE_PLACEMENT = FLAGS.log_device_placement
 TF_RECORDS = FLAGS.train_tfrecords
 BATCH_SIZE = FLAGS.batch_size
 
+
 def dense_to_one_hot(labels, n_classes=2):
-    """Convert class labels from scalars to one-hot vectors."""
     labels = np.array(labels)
     n_labels = labels.shape[0]
     index_offset = np.arange(n_labels) * n_classes
     labels_one_hot = np.zeros((n_labels, n_classes), dtype=np.float32)
     labels_one_hot.flat[index_offset + labels.ravel()] = 1
+    print len(labels_one_hot)
     return labels_one_hot
+
 
 def train():
     '''
@@ -51,40 +54,45 @@ def train():
 
         # 教師データ
         #images, labels = data_inputs.distorted_inputs(TF_RECORDS)
-        #mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
-        #trX, trY, teX, teY = mnist.train.images, mnist.train.labels, mnist.test.images, mnist.test.labels
-        #trX = trX.reshape(-1, 28, 28, 1)
-        #teX = teX.reshape(-1, 28, 28, 1)
-        mnist_cluttered = np.load('./data/mnist_sequence1_sample_5distortions5x5.npz')
-        X_train = mnist_cluttered['X_train']
-        y_train = mnist_cluttered['y_train']
-        #X_valid = mnist_cluttered['X_valid']
-        #y_valid = mnist_cluttered['y_valid']
-        #X_test = mnist_cluttered['X_test']
-        #y_test = mnist_cluttered['y_test']
+        # 教師データ
+        mnist = np.load('./data/mnist_sequence1_sample_5distortions5x5.npz')
+        trX = mnist['X_train']
+        trY = mnist['y_train']
+        # X_valid = mnist_cluttered['X_valid']
+        # y_valid = mnist_cluttered['y_valid']
+        teX = mnist['X_test']
+        teY = mnist['y_test']
+        trXr = trX.reshape(-1, 40, 40, 1)
+        trX = trX.reshape(-1, 1600)
+        teXr = teX.reshape(-1, 40, 40, 1)
+        teX = teX.reshape(-1, 1600)
         
         # % turn from dense to one hot representation
-        Y_train = dense_to_one_hot(y_train, n_classes=10)
-        #Y_valid = dense_to_one_hot(y_valid, n_classes=10)
-        #Y_test = dense_to_one_hot(y_test, n_classes=10)
-        
-        # %% Graph representation of our network
-        
-        # %% Placeholders for 40x40 resolution
-        images = tf.placeholder(tf.float32, [None, 1600]) 
-        labels = tf.placeholder(tf.float32, [None, 10])
+        trY = dense_to_one_hot(trY, n_classes=10)
+        trY = trY.reshape(-1, 10)
+        # Y_valid = dense_to_one_hot(y_valid, n_classes=10)
+        teY = dense_to_one_hot(teY, n_classes=10)
+        teY = teY.reshape(-1, 10)
 
+        print("the number of train data: %d" % (len(trX)))
 
         # create mini_batch
         #datas, targets = trX.(trX, trY, BATCH_SIZE)
-        #images = tf.placeholder(tf.float32, [None, 28, 28, 1])
-        #labels = tf.placeholder(tf.float32, [None, 10])
+
+        images = tf.placeholder(tf.float32, [None, 1600])
+        re_images = tf.placeholder(tf.float32, [None, 40, 40, 1])
+        labels = tf.placeholder(tf.float32, [None, 10])
+        keep_conv = tf.placeholder(tf.float32)
+        keep_hidden = tf.placeholder(tf.float32)
 
         # graphのoutput
-        logits = model.inference(images)
+        logits = model.inference(images, re_images, keep_conv, keep_hidden)
 
         # loss graphのoutputとlabelを利用
-        loss = model.loss(logits, labels)
+        #loss = model.loss(logits, labels)
+        
+        loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits, labels))
+        predict_op = tf.argmax(logits, 1)
 
         # 学習オペレーション
         train_op = op.train(loss, global_step)
@@ -107,51 +115,46 @@ def train():
 
         # サマリーのライターを設定
         summary_writer = tf.train.SummaryWriter(TRAIN_DIR, graph_def=sess.graph_def)
-  
-        # mini-batch用インデックス
-        iter_per_epoch = 100
-        n_epochs = MAX_STEPS
-        indices = np.linspace(0, 10000 - 1, iter_per_epoch)
-        indices = indices.astype('int')
  
         # max_stepまで繰り返し学習
-        for step in xrange(n_epochs):
+        for step in xrange(MAX_STEPS):
             start_time = time.time()
-            for iter_i in range(iter_per_epoch - 1):
-                batch_xs = X_train[indices[iter_i]:indices[iter_i+BATCH_SIZE]]
-                batch_ys = Y_train[indices[iter_i]:indices[iter_i+BATCH_SIZE]]
+            previous_time = start_time
+            index = 0
+            for start, end in zip(range(0, len(trX), BATCH_SIZE), range(BATCH_SIZE, len(trX), BATCH_SIZE)):
+                _, loss_value = sess.run([train_op, loss], feed_dict={images: trX[start:end], re_images: trXr[start:end], labels: trY[start:end], keep_conv: 0.8, keep_hidden: 0.5})
+                if index % 10 == 0:
+                    end_time = time.time()
+                    duration = end_time - previous_time
+                    num_examples_per_step = BATCH_SIZE * 10 * (step+1)
+                    examples_per_sec = num_examples_per_step / duration
+                    print("%s: %d[epoch]: %d[iteration]: train loss %f: %d[examples/step]: %f[examples/sec]: %f[sec/iteration]" % (datetime.now(), step, index, loss_value, num_examples_per_step, examples_per_sec, duration))
+                    index += 1
+                    assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
 
-                _, loss_value = sess.run([train_op, loss], feed_dict={images: batch_xs, labels: batch_ys})
-            duration = time.time() - start_time
-            assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
+                    test_indices = np.arange(len(teX)) # Get A Test Batch
+                    np.random.shuffle(test_indices)
+                    test_indices = test_indices[0:5]
+                    print "="*20
+                    print teY[test_indices]
+                    predict, cost_value = sess.run([predict_op, loss], feed_dict={images: teX[test_indices], re_images: teXr[test_indices], labels: teY[test_indices], keep_conv: 1.0, keep_hidden: 1.0})
+                    print predict
+                    print("test loss: %f" % (cost_value))
+                    print "="*20
+                    previous_time = end_time
 
-            # 3回ごと
-            if step % 3 == 0:
-                # stepごとの事例数 = mini batch size
-                #num_examples_per_step = BATCH_SIZE
-                num_examples_per_step = 20
-
-                # 1秒ごとの事例数
-                examples_per_sec = num_examples_per_step / duration
+                index += 1
+                assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
                 
-                # バッチごとの時間
-                sec_per_batch = float(duration)
-
-                # time, step数, loss, 1秒で実行できた事例数, バッチあたりの時間
-                format_str = '$s: step %d, loss = %.2f (%.1f examples/sec; %.3f sec/batch)'
-                print str(datetime.now()) + ': step' + str(step) + ', loss= '+ str(loss_value) + ' ' + str(examples_per_sec) + ' examples/sec; ' + str(sec_per_batch) + ' sec/batch'
-
-            # 10回ごと
-            if step % 10 == 0:
-                pass
-                #summary_str = sess.run(summary_op)
-                # サマリーに書き込む
-                #summary_writer.add_summary(summary_str, step)
-
-            if step % 1000 == 0 or (step * 1) == MAX_STEPS:
+                # 1000回ごと
+                if index % 100 == 0:
+                    pass
+                    summary_str = sess.run(summary_op, feed_dict={images: trX[start:end], re_images: trXr[start:end], labels: trY[start:end], keep_conv: 0.8, keep_hidden: 0.5})
+                    # サマリーに書き込む
+                    summary_writer.add_summary(summary_str, step)
+            if step % 1 == 0 or (step * 1) == MAX_STEPS:
                 checkpoint_path = TRAIN_DIR + '/model.ckpt'
                 saver.save(sess, checkpoint_path, global_step=step)
-
         coord.request_stop()
         coord.join(threads)
         sess.close()

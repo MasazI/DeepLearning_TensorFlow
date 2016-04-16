@@ -91,16 +91,16 @@ def train():
         # max_stepまで繰り返し学習
         for step in xrange(MAX_STEPS):
             start_time = time.time()
-
+            previous_time = start_time
             index = 0
             for start, end in zip(range(0, len(trX), BATCH_SIZE), range(BATCH_SIZE, len(trX), BATCH_SIZE)):
                 _, loss_value = sess.run([train_op, loss], feed_dict={images: trX[start:end], labels: trY[start:end]})
                 if index % 10 == 0:
                     end_time = time.time()
-                    duration = end_time - start_time
+                    duration = end_time - previous_time
                     num_examples_per_step = BATCH_SIZE * 10 * (step+1)
                     examples_per_sec = num_examples_per_step / duration
-                    print("%s: %d[epoch]: %d[iteration]: train loss %f: %d[examples/step]: %f[examples/sec]: %f[sec/batch]" % (datetime.now(), step, index, loss_value, num_examples_per_step, examples_per_sec, duration))
+                    print("%s: %d[epoch]: %d[iteration]: train loss %f: %d[examples/step]: %f[examples/sec]: %f[sec/iteration]" % (datetime.now(), step, index, loss_value, num_examples_per_step, examples_per_sec, duration))
                     index += 1
                     assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
 
@@ -114,6 +114,7 @@ def train():
                     print predict
                     print("test loss: %f" % (cost_value))
                     print "="*20
+                    previous_time = end_time
 
                 index += 1
                 assert not np.isnan(loss_value), 'Model diverged with loss = NaN'

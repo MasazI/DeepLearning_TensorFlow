@@ -53,19 +53,20 @@ def train():
 
         images = tf.placeholder(tf.float32, [None, 28, 28, 1])
         labels = tf.placeholder(tf.float32, [None, 10])
+        keep_conv = tf.placeholder("float")
+        keep_hidden = tf.placeholder("float")
 
         # graphのoutput
-        logits = model.inference(images)
+        logits = model.inference(images, keep_conv, keep_hidden)
 
         # loss graphのoutputとlabelを利用
         #loss = model.loss(logits, labels)
         
         loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits, labels))
-        train_op = tf.train.RMSPropOptimizer(0.001, 0.9).minimize(loss)
         predict_op = tf.argmax(logits, 1)
 
         # 学習オペレーション
-        #train_op = op.train(loss, global_step)
+        train_op = op.train(loss, global_step)
 
         # saver
         saver = tf.train.Saver(tf.all_variables())
@@ -85,8 +86,6 @@ def train():
 
         # サマリーのライターを設定
         summary_writer = tf.train.SummaryWriter(TRAIN_DIR, graph_def=sess.graph_def)
-  
-        #predict_op = tf.argmax(logits, 1)
  
         # max_stepまで繰り返し学習
         for step in xrange(MAX_STEPS):
@@ -94,7 +93,7 @@ def train():
             previous_time = start_time
             index = 0
             for start, end in zip(range(0, len(trX), BATCH_SIZE), range(BATCH_SIZE, len(trX), BATCH_SIZE)):
-                _, loss_value = sess.run([train_op, loss], feed_dict={images: trX[start:end], labels: trY[start:end]})
+                _, loss_value = sess.run([train_op, loss], feed_dict={images: trX[start:end], labels: trY[start:end], keep_conv: 0.8, keep_hidden: 0.5})
                 if index % 10 == 0:
                     end_time = time.time()
                     duration = end_time - previous_time
@@ -110,7 +109,7 @@ def train():
                     print "="*20
                     print teY[test_indices]
                     predict, cost_value = sess.run([predict_op, loss], feed_dict={images: teX[test_indices],
-                                                                     labels: teY[test_indices]})
+                                                                     labels: teY[test_indices], keep_conv: 1.0, keep_hidden: 1.0})
                     print predict
                     print("test loss: %f" % (cost_value))
                     print "="*20
@@ -120,11 +119,12 @@ def train():
                 assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
                 
                 # 1000回ごと
-                if index % 1000 == 0:
+                if index % 100 == 0:
                     pass
-                    #summary_str = sess.run(summary_op)
+                    summary_str = sess.run(summary_op, feed_dict={images: teX[test_indices],
+                                                                     labels: teY[test_indices], keep_conv: 1.0, keep_hidden: 1.0})
                     # サマリーに書き込む
-                    #summary_writer.add_summary(summary_str, step)
+                    summary_writer.add_summary(summary_str, step)
             if step % 1 == 0 or (step * 1) == MAX_STEPS:
                 checkpoint_path = TRAIN_DIR + '/model.ckpt'
                 saver.save(sess, checkpoint_path, global_step=step)

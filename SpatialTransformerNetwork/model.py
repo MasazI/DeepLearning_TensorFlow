@@ -52,13 +52,13 @@ def _activation_summary(x):
     tf.scalar_summary(tensor_name + '/sparsity', tf.nn.zero_fraction(x))
 
 
-def inference(images, re_images, keep_conv, keep_hidden):
+def inference(images, keep_conv, keep_hidden):
     '''
     アーキテクチャの定義、グラフのビルド
     '''
     # spatial transformer
+    reshape = tf.reshape(images, [-1, 1600])
     with tf.variable_scope('spatial_transformer') as scope:
-        #reshape = tf.reshape(images, [-1, ])
         weights_loc1 = _variable_with_weight_decay(
             'weights_loc1',
             shape=[1600, 20],
@@ -78,14 +78,14 @@ def inference(images, re_images, keep_conv, keep_hidden):
         biases_loc2 = tf.Variable(initial_value=initial, name='biases_loc2')
         
         # define the two layer localisation network
-        h_fc_loc1 = tf.nn.tanh(tf.matmul(images, weights_loc1) + biases_loc1)
+        h_fc_loc1 = tf.nn.tanh(tf.matmul(reshape, weights_loc1) + biases_loc1)
         # We can add dropout for regularizing and to reduce overfitting like so:
         h_fc_loc1_drop = tf.nn.dropout(h_fc_loc1, keep_conv)
         # Second layer
         h_fc_loc2 = tf.nn.tanh(tf.matmul(h_fc_loc1_drop, weights_loc2) + biases_loc2)
        
         # Transformer layer 
-        hidden_trans = spatial.transformer(re_images, h_fc_loc2, downsample_factor=1)
+        hidden_trans = spatial.transformer(images, h_fc_loc2, downsample_factor=1)
         _activation_summary(hidden_trans)
 
     # conv1

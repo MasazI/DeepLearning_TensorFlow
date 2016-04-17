@@ -62,10 +62,8 @@ def train():
         # y_valid = mnist_cluttered['y_valid']
         teX = mnist['X_test']
         teY = mnist['y_test']
-        trXr = trX.reshape(-1, 40, 40, 1)
-        trX = trX.reshape(-1, 1600)
-        teXr = teX.reshape(-1, 40, 40, 1)
-        teX = teX.reshape(-1, 1600)
+        trX = trX.reshape(-1, 40, 40, 1)
+        teX = teX.reshape(-1, 40, 40, 1)
         
         # % turn from dense to one hot representation
         trY = dense_to_one_hot(trY, n_classes=10)
@@ -79,14 +77,13 @@ def train():
         # create mini_batch
         #datas, targets = trX.(trX, trY, BATCH_SIZE)
 
-        images = tf.placeholder(tf.float32, [None, 1600])
-        re_images = tf.placeholder(tf.float32, [None, 40, 40, 1])
+        images = tf.placeholder(tf.float32, [None, 40, 40, 1])
         labels = tf.placeholder(tf.float32, [None, 10])
         keep_conv = tf.placeholder(tf.float32)
         keep_hidden = tf.placeholder(tf.float32)
 
         # graphのoutput
-        logits = model.inference(images, re_images, keep_conv, keep_hidden)
+        logits = model.inference(images, keep_conv, keep_hidden)
 
         # loss graphのoutputとlabelを利用
         #loss = model.loss(logits, labels)
@@ -122,7 +119,7 @@ def train():
             previous_time = start_time
             index = 0
             for start, end in zip(range(0, len(trX), BATCH_SIZE), range(BATCH_SIZE, len(trX), BATCH_SIZE)):
-                _, loss_value = sess.run([train_op, loss], feed_dict={images: trX[start:end], re_images: trXr[start:end], labels: trY[start:end], keep_conv: 0.8, keep_hidden: 0.5})
+                _, loss_value = sess.run([train_op, loss], feed_dict={images: trX[start:end], labels: trY[start:end], keep_conv: 0.8, keep_hidden: 0.5})
                 if index % 10 == 0:
                     end_time = time.time()
                     duration = end_time - previous_time
@@ -137,7 +134,7 @@ def train():
                     test_indices = test_indices[0:5]
                     print "="*20
                     print teY[test_indices]
-                    predict, cost_value = sess.run([predict_op, loss], feed_dict={images: teX[test_indices], re_images: teXr[test_indices], labels: teY[test_indices], keep_conv: 1.0, keep_hidden: 1.0})
+                    predict, cost_value = sess.run([predict_op, loss], feed_dict={images: teX[test_indices], labels: teY[test_indices], keep_conv: 1.0, keep_hidden: 1.0})
                     print predict
                     print("test loss: %f" % (cost_value))
                     print "="*20
@@ -149,7 +146,7 @@ def train():
                 # 1000回ごと
                 if index % 100 == 0:
                     pass
-                    summary_str = sess.run(summary_op, feed_dict={images: trX[start:end], re_images: trXr[start:end], labels: trY[start:end], keep_conv: 0.8, keep_hidden: 0.5})
+                    summary_str = sess.run(summary_op, feed_dict={images: trX[start:end], labels: trY[start:end], keep_conv: 0.8, keep_hidden: 0.5})
                     # サマリーに書き込む
                     summary_writer.add_summary(summary_str, step)
             if step % 1 == 0 or (step * 1) == MAX_STEPS:

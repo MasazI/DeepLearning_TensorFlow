@@ -1,7 +1,9 @@
 # encoding: utf-8
 
 # general
+import os
 import re
+import sys
 
 # tensorflow
 import tensorflow as tf
@@ -50,25 +52,25 @@ def _activation_summary(x):
     tf.scalar_summary(tensor_name + '/sparsity', tf.nn.zero_fraction(x))
 
 
-def inference(images):
+def inference(images, re_images, keep_conv, keep_hidden):
     '''
     アーキテクチャの定義、グラフのビルド
     '''
     # spatial transformer
-    images_tensor = tf.reshape(images, [-1, 40, 40, 1])
     with tf.variable_scope('spatial_transformer') as scope:
+        #reshape = tf.reshape(images, [-1, ])
         weights_loc1 = _variable_with_weight_decay(
             'weights_loc1',
             shape=[1600, 20],
-            stddev=1.0/784,
-            wd=0.04
+            stddev=0.01,
+            wd=0.0
         )
         biases_loc1 = _variable_on_cpu('biases_loc1', [20], tf.constant_initializer(0.1))
         weights_loc2 = _variable_with_weight_decay(
             'weights_loc2',
             shape=[20, 6],
-            stddev=1.0/20,
-            wd=0.04
+            stddev=0.01,
+            wd=0.0
         )
         initial = np.array([[1., 0, 0], [0, 1., 0]]) # Use identity transformation as starting point
         initial = initial.astype('float32')
@@ -78,13 +80,12 @@ def inference(images):
         # define the two layer localisation network
         h_fc_loc1 = tf.nn.tanh(tf.matmul(images, weights_loc1) + biases_loc1)
         # We can add dropout for regularizing and to reduce overfitting like so:
-        keep_prob = tf.placeholder(tf.float32)
-        h_fc_loc1_drop = tf.nn.dropout(h_fc_loc1, keep_prob)
+        h_fc_loc1_drop = tf.nn.dropout(h_fc_loc1, keep_conv)
         # Second layer
         h_fc_loc2 = tf.nn.tanh(tf.matmul(h_fc_loc1_drop, weights_loc2) + biases_loc2)
        
         # Transformer layer 
-        hidden_trans = spatial.transformer(images_tensor, h_fc_loc2, downsample_factor=1)
+        hidden_trans = spatial.transformer(re_images, h_fc_loc2, downsample_factor=1)
         _activation_summary(hidden_trans)
 
     # conv1
@@ -92,125 +93,59 @@ def inference(images):
         kernel = _variable_with_weight_decay(
             'weights',
             shape=[3, 3, 1, 16],
-            stddev=1e-4,
+            stddev=0.01,
             wd=0.0 # not use weight decay
         )
         conv = tf.nn.conv2d(hidden_trans, kernel, [1, 2, 2, 1], padding='SAME')
-        biases = _variable_on_cpu('biases', [16], tf.constant_initializer(0.0))
-        bias = tf.nn.bias_add(conv, biases)
-        conv1 = tf.nn.relu6(bias, name=scope.name)
+        conv1 = tf.nn.relu(conv, name=scope.name)
         _activation_summary(conv1)
-
-    # pool1
-    pool1 = tf.nn.max_pool(
-        conv1,
-        ksize=[1, 3, 3, 1],
-        strides=[1, 2, 2, 1],
-        padding='SAME',
-        name='pool1'
-    )
-
-    # norm1
-    norm1 = tf.nn.lrn(
-        pool1,
-        4,
-        bias=1.0,
-        alpha=0.001/9.0,
-        beta=0.75,
-        name='norm1'
-    )
 
     # conv2
     with tf.variable_scope('conv2') as scope:
         kernel = _variable_with_weight_decay(
             'weights',
-            shape=[5, 5, 16, 64],
-            stddev=1e-4,
+            shape=[3, 3, 16, 16],
+            stddev=0.01,
             wd=0.0 # not use weight decay
         )
-        conv = tf.nn.conv2d(norm1, kernel, [1, 1, 1, 1], padding='SAME')
-        biases = _variable_on_cpu('biases', [64], tf.constant_initializer(0.1))
+        conv = tf.nn.conv2d(conv1, kernel, [1, 2, 2, 1], padding='SAME')
+        biases = _variable_on_cpu('biases', [16], tf.constant_initializer(0.1))
         bias = tf.nn.bias_add(conv, biases)
         conv2 = tf.nn.relu(bias, name=scope.name)
         _activation_summary(conv2)
     
-    # norm2
-    norm2 = tf.nn.lrn(
-        conv2,
-        4,
-        bias=1.0,
-        alpha=0.001/9.0,
-        beta=0.75,
-        name='norm2'
-    )
-
-    # pool2
-    pool2 = tf.nn.max_pool(
-        norm2,
-        ksize=[1, 3, 3, 1],
-        strides=[1, 2, 2, 1],
-        padding='SAME',
-        name='pool2'
-    )
-
     # local3 fc
     with tf.variable_scope('local3') as scope:
-        dim = 1
-        for d in pool2.get_shape()[1:].as_list():
-            dim *= d
-        reshape = tf.reshape(pool2, [FLAGS.batch_size, dim])
-
+        reshape = tf.reshape(conv2, [-1, 10*10*16])
+        reshape = tf.nn.dropout(reshape, keep_conv) 
         weights = _variable_with_weight_decay(
             'weights',
-            shape=[dim, 384],
-            stddev=1.0/dim,
+            shape=[10*10*16, 1024],
+            stddev=0.01,
             wd=0.04
         )
-        biases = _variable_on_cpu('biases', [384], tf.constant_initializer(0.1))
-        local3 = tf.nn.relu_layer(reshape, weights, biases, name=scope.name)
+        biases = _variable_on_cpu('biases', [1024], tf.constant_initializer(0.1))
+        local3 = tf.nn.relu(tf.add(tf.matmul(reshape, weights), biases, name=scope.name))
         _activation_summary(local3)
 
-    # local4 fc
-    with tf.variable_scope('local4') as scope:
-        weights = _variable_with_weight_decay(
-            'weights',
-            shape=[384, 192],
-            stddev=1/384.0,
-            wd=0.04
-        )
-        biases = _variable_on_cpu('biases', [192], tf.constant_initializer(0.1))
-        local4 = tf.nn.relu_layer(local3, weights, biases, name=scope.name)
-        _activation_summary(local4)
+    dropout3 = tf.nn.dropout(local3, keep_hidden)
 
     # softmax
     with tf.variable_scope('softmax_linear') as scope:
         weights = _variable_with_weight_decay(
             'weights',
-            [192, NUM_CLASSES],
-            stddev=1/192.0,
+            [1024, NUM_CLASSES],
+            stddev=0.01,
             wd=0.0
         )
-        biases = _variable_on_cpu('biases', [NUM_CLASSES], tf.constant_initializer(0.0))
-        softmax_linear = tf.nn.xw_plus_b(local4, weights, biases, name=scope.name)
+        biases = _variable_on_cpu('biases', [NUM_CLASSES], tf.constant_initializer(0.1))
+        softmax_linear = tf.add(tf.matmul(dropout3, weights), biases, name=scope.name)
         _activation_summary(softmax_linear)
 
     return softmax_linear
 
 
 def loss(logits, labels):
-    #sparse_labels = tf.reshape(labels, [FLAGS.batch_size, 1])
-    #indices = tf.reshape(tf.range(0, FLAGS.batch_size), [FLAGS.batch_size, 1])
-    #labels = tf.expand_dims(labels, 1)
-    #indices = tf.expand_dims(tf.range(0, FLAGS.batch_size, 1), 1)
-    #concated = tf.concat(1, [indices, sparse_labels])
-    #concated = tf.concat(1, [indices, labels])
-    # sparse_to_dense のクラス数は クラスラベルの最大値+1 とすること
-    #dense_labels = tf.sparse_to_dense(
-    #    concated,
-    #    [FLAGS.batch_size, NUM_CLASSES],
-    #    1.0,
-    #    0.0
-    #)
     cross_entropy = tf.nn.softmax_cross_entropy_with_logits(
         logits,
         labels,

@@ -15,6 +15,7 @@ http://tensorflow.org/
 - CNN_tiny(AlexNet 2010)
 - CaffeNet(AlexNet 2012)
 - BatchNormalization
+- SpatialTransfomerNetwork
 
 if you use pyenv and anaconda:
 add /path/to/.pyenv/versions/anaconda-2.0.1/bin/ into PATH

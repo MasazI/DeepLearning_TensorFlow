@@ -72,20 +72,17 @@ class SarsaNNCom:
         state_array = np.asarray(state.to_array())
         state_array = state_array.reshape(-1, 9)
         action_values = self.sess.run([self.logits], feed_dict={self.x: state_array})
+        print np.shape(action_values)
         selected_action = np.argmax(action_values)
-
-        # 選択可能な行動をとった後の最大の状態価値を取得
-        #selected_action = max(map.items(), key=lambda x:x[1])[0]
+        print selected_action
 
         if self.training:
             if random.random() < self.epsilon:
                 # ランダム(ε-greedy)
                 selected_action = random.choice(state.get_valid_actions()) 
             else:
-                # 価値が最高の行動を実行した後の状態
-                new_state = state.set(selected_action, self.mark)
-                # とその行動価値
-                value = self.value[new_state]
+                # 行動価値
+                value = action_values[0][0][selected_action]
                 if self.verbose:
                     print("action %s, value: %f" % (selected_action, value))
         # 行動後の状態を保持

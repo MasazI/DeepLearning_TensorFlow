@@ -46,10 +46,10 @@ game = Game(com_1, com_2)
 game.start(True)
 
 # モデルの保存
-with open('tic_tac_toe_com_1_sarsa_r.pkl', 'wb') as f:
-    dill.dump(com_1, f)
-
-with open('tic_tac_toe_com_2_sarsa_r.pkl', 'wb') as f:
-    dill.dump(com_2, f)
+# NNのパラメータ保存に変更
+#with open('tic_tac_toe_com_1_sarsa_r.pkl', 'wb') as f:
+#    dill.dump(com_1, f)
+#with open('tic_tac_toe_com_2_sarsa_r.pkl', 'wb') as f:
+#    dill.dump(com_2, f)
 
 

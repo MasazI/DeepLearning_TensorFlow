@@ -10,10 +10,12 @@ http://tensorflow.org/
 - Createing mini-batch
 - LogisticRegression
 - MLP using tensorflow structure and tensorboard
-- CNN_minit(AlexNet 2010) for new algorithm experiments
+- CNN_minit for new algorithm experiments with MNIST
+- CNN_cminit for new algorithm experiments with Cluttered MNIST
 - CNN_tiny(AlexNet 2010)
 - CaffeNet(AlexNet 2012)
 - BatchNormalization
+- SpatialTransfomerNetwork
 
 if you use pyenv and anaconda:
 add /path/to/.pyenv/versions/anaconda-2.0.1/bin/ into PATH

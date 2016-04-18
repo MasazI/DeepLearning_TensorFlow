@@ -3,6 +3,7 @@
 tic tac toe のSarsa λ実行クラス
 '''
 from tic_tac_toe_sarsa_r_com import SarsaRCom
+from tic_tac_toe_nn_com import SarsaNNCom
 
 from mark import Mark
 from maru_mark import Maru
@@ -11,7 +12,7 @@ from tic_tac_toe_game import Game
 
 import dill
 
-com_1 = SarsaRCom(Mark(Maru()), 0.1, 0.1, 0.6)
+com_1 = SarsaNNCom(Mark(Maru()), 0.1, 0.1, 0.6)
 com_2 = SarsaRCom(Mark(Batsu()), 0.1, 0.1, 0.6)
 
 iterations = 100000

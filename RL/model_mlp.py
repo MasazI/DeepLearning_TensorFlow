@@ -74,29 +74,29 @@ def inference(inputs, name):
     with tf.variable_scope(layer1_name) as scope:
         weights = _variable_with_weight_decay(
             'weights',
-            shape=[5, 4],
+            shape=[9, 12],
             stddev=0.04,
             wd=0.004
         )
-        biases = _variable_on_cpu('biases', [4], tf.constant_initializer(0.1))
+        biases = _variable_on_cpu('biases', [12], tf.constant_initializer(0.1))
         #bn1 = batch_normalization(4, tf.matmul(inputs, weights))
         #local1 = tf.nn.relu(bn1)
         #inner_product = tf.matmul(inputs, weights)
         local1 = tf.nn.relu(tf.add(tf.matmul(inputs, weights), biases))
         #local1 = tf.nn.relu_layer(inputs, weights, biases, name=scope.name)
-        _activation_summary(local1)
+        #_activation_summary(local1)
     # softmax
     layer2_name = 'fc2_' + name
     with tf.variable_scope(layer2_name) as scope:
         weights = _variable_with_weight_decay(
             'weights',
-            [4, NUM_CLASSES],
+            [12, NUM_CLASSES],
             stddev=0.04,
             wd=0.0
         )
         biases = _variable_on_cpu('biases', [NUM_CLASSES], tf.constant_initializer(0.0))
         linear = tf.nn.xw_plus_b(local1, weights, biases, name=scope.name)
-        _activation_summary(linear)
+        #_activation_summary(linear)
 
     return linear
 

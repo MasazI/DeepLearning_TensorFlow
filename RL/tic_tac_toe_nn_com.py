@@ -10,6 +10,11 @@ from empty_mark import Empty
 
 from collections import defaultdict
 
+import tensorflow as tf
+import model_mlp as model
+
+import numpy as np
+
 class SarsaNNCom:
     def __init__(self, mark, epsilon=0.1, step_size=0.1, td_lambda=0.6):
         '''
@@ -25,6 +30,16 @@ class SarsaNNCom:
         self.step_size = step_size
         self.td_lambda = td_lambda
 
+        # tensorflow Session
+        self.sess = tf.InteractiveSession()
+        # input placeholder
+        self.x = tf.placeholder(tf.float32, shape=[None, 9])
+        self.logits = model.inference(self.x, str(mark.to_int()))
+   
+        # initialize
+        init_op = tf.initialize_all_variables()
+        self.sess.run(init_op)
+ 
         # 価値テーブルを保持(Comを保存できるようにする)
         # stateはhashableにしてvalueのkeyにする
         self.value = defaultdict(lambda: 0.0)
@@ -53,16 +68,14 @@ class SarsaNNCom:
         return:
             行動
         '''
-        # 価値が最高の行動を取得
-        map = {}
-        for action in state.get_valid_actions():
-            after_state = state.set(action, self.mark)
-            map[action] = self.value[after_state]
-            if self.verbose:
-                print("action %s, value: %f" % (action, map[action]))
+        # 行動とその価値をニューラルネットワークで推定
+        state_array = np.asarray(state.to_array())
+        state_array = state_array.reshape(-1, 9)
+        action_values = self.sess.run([self.logits], feed_dict={self.x: state_array})
+        selected_action = np.argmax(action_values)
 
         # 選択可能な行動をとった後の最大の状態価値を取得
-        selected_action = max(map.items(), key=lambda x:x[1])[0]
+        #selected_action = max(map.items(), key=lambda x:x[1])[0]
 
         if self.training:
             if random.random() < self.epsilon:

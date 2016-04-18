@@ -50,7 +50,7 @@ class ClippedGradientDescentOptimizer(tf.train.GradientDescentOptimizer):
 
 def train(total_loss, global_step):
     # epochあたりのmini batch数
-    num_batches_per_epoch = NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN / FLAGS.batch_size
+    num_batches_per_epoch = float(NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN) / float(FLAGS.batch_size)
     # 重み減衰のステップ 減衰あたりのmini batch数
     decay_steps = int(num_batches_per_epoch * NUM_EPOCHS_PER_DECAY)
 

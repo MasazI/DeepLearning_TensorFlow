@@ -27,7 +27,7 @@ def _variable_with_weight_decay(name, shape, stddev, wd):
     '''
     重み減衰を利用した変数の初期化
     '''
-    var = _variable_on_cpu(name, shape, tf.truncated_normal_initializer(stddev=stddev))
+    var = _variable_on_gpu(name, shape, tf.truncated_normal_initializer(stddev=stddev))
     if wd:
         weight_decay = tf.mul(tf.nn.l2_loss(var), wd, name='weight_loss')
         tf.add_to_collection('losses', weight_decay)
@@ -42,6 +42,13 @@ def _variable_on_cpu(name, shape, initializer):
         var = tf.get_variable(name, shape, initializer=initializer)
     return var
 
+def _variable_on_gpu(name, shape, initializer):
+    '''
+    GPUメモリに変数をストアする
+    '''
+    with tf.device('/gpu:0'):
+        var = tf.get_variable(name, shape, initializer=initializer)
+    return var
 
 def _activation_summary(x):
     '''
@@ -66,7 +73,7 @@ def inference(images, keep_conv, keep_hidden):
             stddev=0.01,
             wd=0.0
         )
-        biases_loc1 = _variable_on_cpu('biases_loc1', [20], tf.constant_initializer(0.1))
+        biases_loc1 = _variable_on_gpu('biases_loc1', [20], tf.constant_initializer(0.1))
         # output 6 dimentional vector to compute sampling grid
         weights_loc2 = _variable_with_weight_decay(
             'weights_loc2',
@@ -102,8 +109,10 @@ def inference(images, keep_conv, keep_hidden):
             stddev=0.01,
             wd=0.0 # not use weight decay
         )
-        conv = tf.nn.conv2d(hidden_trans, kernel, [1, 4, 4, 1], padding='SAME')
-        conv1 = tf.nn.relu(conv, name=scope.name)
+        conv = tf.nn.conv2d(images, kernel, [1, 4, 4, 1], padding='SAME')
+        biases = _variable_on_gpu('biases', [64], tf.constant_initializer(0.1))
+        bias = tf.nn.bias_add(conv, biases)
+        conv1 = tf.nn.relu(bias, name=scope.name)
         _activation_summary(conv1)
 
     print "="*100
@@ -131,7 +140,7 @@ def inference(images, keep_conv, keep_hidden):
             wd=0.0 # not use weight decay
         )
         conv = tf.nn.conv2d(norm1, kernel, [1, 1, 1, 1], padding='SAME')
-        biases = _variable_on_cpu('biases', [192], tf.constant_initializer(0.1))
+        biases = _variable_on_gpu('biases', [192], tf.constant_initializer(0.1))
         bias = tf.nn.bias_add(conv, biases)
         conv2 = tf.nn.relu(bias, name=scope.name)
         _activation_summary(conv2)
@@ -155,7 +164,7 @@ def inference(images, keep_conv, keep_hidden):
             stddev=1e-4,
             wd=0.0)
         conv = tf.nn.conv2d(norm2, kernel, [1, 1, 1, 1], padding='SAME')
-        biases = _variable_on_cpu('biases', [384], tf.constant_initializer(0.1))
+        biases = _variable_on_gpu('biases', [384], tf.constant_initializer(0.1))
         bias = tf.nn.bias_add(conv, biases)
         conv3 = tf.nn.relu(bias, name=scope.name)
         _activation_summary(conv3)
@@ -168,7 +177,7 @@ def inference(images, keep_conv, keep_hidden):
             stddev=1e-4,
             wd=0.0)
         conv = tf.nn.conv2d(conv3, kernel, [1, 1, 1, 1], padding='SAME')
-        biases = _variable_on_cpu('biases', [384], tf.constant_initializer(0.1))
+        biases = _variable_on_gpu('biases', [384], tf.constant_initializer(0.1))
         bias = tf.nn.bias_add(conv, biases)
         conv4 = tf.nn.relu(bias, name=scope.name)
         _activation_summary(conv4)
@@ -181,7 +190,7 @@ def inference(images, keep_conv, keep_hidden):
             stddev=1e-4,
             wd=0.0)
         conv = tf.nn.conv2d(conv4, kernel, [1, 1, 1, 1], padding='SAME')
-        biases = _variable_on_cpu('biases', [256], tf.constant_initializer(0.1))
+        biases = _variable_on_gpu('biases', [256], tf.constant_initializer(0.1))
         bias = tf.nn.bias_add(conv, biases)
         conv5 = tf.nn.relu(bias, name=scope.name)
         _activation_summary(conv5)
@@ -197,12 +206,13 @@ def inference(images, keep_conv, keep_hidden):
     # fc6 output_map 1x1x4096
     with tf.variable_scope('fc6'):
         input_shape = pool5.get_shape()
-        print "-"*100
-        print pool5.get_shape()
-        print "-"*100
         pool5_flat = tf.reshape(pool5, [-1, 6*6*256])
-        weights = _variable_with_weight_decay('weights', [6*6*256, 4096], stddev=1/256.0, wd=0.04)
-        biases = _variable_on_cpu('biases', 4096, tf.constant_initializer(0.1))
+        weights = _variable_with_weight_decay(
+            'weights',
+            [6*6*256, 4096],
+            stddev=0.01,
+            wd=0.04)
+        biases = _variable_on_gpu('biases', 4096, tf.constant_initializer(0.1))
         fc6 = tf.nn.relu_layer(pool5_flat, weights, biases, name=scope.name)
         _activation_summary(fc6)
 
@@ -213,8 +223,12 @@ def inference(images, keep_conv, keep_hidden):
     with tf.variable_scope('fc7'):
         input_shape = fc6_dropout.get_shape()
         inputs_fc7, dim = (fc6_dropout, int(input_shape[-1]))
-        weights = _variable_with_weight_decay('weights', [4096, 4096], stddev=1/4096.0, wd=0.04)
-        biases = _variable_on_cpu('biases', 4096, tf.constant_initializer(0.1))
+        weights = _variable_with_weight_decay(
+            'weights',
+            [4096, 4096],
+            stddev=0.01,
+            wd=0.04)
+        biases = _variable_on_gpu('biases', 4096, tf.constant_initializer(0.1))
         fc7 = tf.nn.relu_layer(inputs_fc7, weights, biases, name=scope.name)
         _activation_summary(fc7)
 
@@ -223,8 +237,12 @@ def inference(images, keep_conv, keep_hidden):
 
     # fc8(softmax) output_map 1x1xNUM_CLASSES
     with tf.variable_scope('softmax_linear') as scope:
-        weights = _variable_with_weight_decay('weights', [4096, NUM_CLASSES], stddev=1/4096.0, wd=0.04)
-        biases = _variable_on_cpu('biases', [NUM_CLASSES], tf.constant_initializer(0.1))
+        weights = _variable_with_weight_decay(
+            'weights',
+            [4096, NUM_CLASSES],
+            stddev=0.01,
+            wd=0.04)
+        biases = _variable_on_gpu('biases', [NUM_CLASSES], tf.constant_initializer(0.1))
         softmax_linear = tf.nn.xw_plus_b(fc7_dropout, weights, biases, name=scope.name)
         _activation_summary(softmax_linear)
     

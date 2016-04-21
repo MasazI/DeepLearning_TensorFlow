@@ -53,7 +53,7 @@ def train():
         global_step = tf.Variable(0, trainable=False)
 
         # 教師データ
-        image_input = ImageInput('./data/101Caltech_examples.txt')
+        image_input = ImageInput('./data/101Caltech_shuffles.txt')
         print("the number of train data: %d" % (len(image_input.image_paths)))
 
         images = tf.placeholder(tf.float32, [None, 224, 224, 3])
@@ -106,7 +106,7 @@ def train():
                 if index % 10 == 0:
                     end_time = time.time()
                     duration = end_time - previous_time
-                    num_examples_per_step = BATCH_SIZE * 10 * (step+1)
+                    num_examples_per_step = BATCH_SIZE * 10
                     examples_per_sec = num_examples_per_step / duration
                     print("%s: %d[epoch]: %d[iteration]: train loss %f: %d[examples/step]: %f[examples/sec]: %f[sec/iteration]" % (datetime.now(), step, index, loss_value, num_examples_per_step, examples_per_sec, duration))
                     index += 1
@@ -115,12 +115,16 @@ def train():
                     # test_indices = np.arange(len(teX)) # Get A Test Batch
                     # np.random.shuffle(test_indices)
                     # test_indices = test_indices[0:5]
-                    # print "="*20
-                    # print teY[test_indices]
-                    # predict, cost_value = sess.run([predict_op, loss], feed_dict={images: teX[test_indices], labels: teY[test_indices], keep_conv: 1.0, keep_hidden: 1.0})
-                    # print predict
-                    # print("test loss: %f" % (cost_value))
-                    # print "="*20
+                    print "="*20
+                    testx = train[0:2]
+                    #print testx
+                    testy = label[0:2]
+                    print np.argmax(testy[0])
+                    print np.argmax(testy[1])
+                    output_vec, predict, cost_value = sess.run([logits, predict_op, loss], feed_dict={images: testx, labels: testy, keep_conv: 1.0, keep_hidden: 1.0})
+                    print predict
+                    print("test loss: %f" % (cost_value))
+                    print "="*20
                     previous_time = end_time
 
                 index += 1

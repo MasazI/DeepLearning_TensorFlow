@@ -62,7 +62,7 @@ class ImageInput(object):
         return img
 
     def one_hot(self, index):
-        one_hot = np.zeros(self.num_classes)
+        one_hot = np.zeros(self.num_classes, dtype=np.float32)
         one_hot[index] = 1.0
         return one_hot
 
@@ -76,22 +76,23 @@ class ImageInput(object):
                 labels = self.labels[i:i+n]
                 labels_index = [self.one_hot(self.list_labels.index(label)) for label in labels]
                 self.batches.append((images, labels_index))
-        random.shuffle(self.batches)
+
         return self.batches
 
     def __len__(self):
         return len(self.labels)
 
 def test():
-    image_input = ImageInput('./data/101Caltech_examples.txt')
+    image_input = ImageInput('./data/101Caltech_shuffles.txt')
     print "1st start"
     start = time.time()
-    image_input.get_batches(10)
+    batches = image_input.get_batches(5)
+    print batches
     end = time.time()
     print("1st done %f" % (end - start))
     print "2nd start"
     start = time.time()
-    image_input.get_batches(10)
+    image_input.get_batches(5)
     end = time.time()
     print("2nd done %f" % (end - start))
 

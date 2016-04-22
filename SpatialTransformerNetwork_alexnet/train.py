@@ -73,9 +73,6 @@ def train():
         # 学習オペレーション
         train_op = op.train(loss, global_step)
 
-        # saver
-        saver = tf.train.Saver(tf.all_variables())
-
         # サマリー
         summary_op = tf.merge_all_summaries()
 
@@ -85,6 +82,30 @@ def train():
         # Session
         sess = tf.Session(config=tf.ConfigProto(log_device_placement=LOG_DEVICE_PLACEMENT))
         sess.run(init_op)
+
+        # saver
+        saver = tf.train.Saver(tf.all_variables())
+
+        # pretrained_model
+        if FLAGS.fine_tune:
+            # saver
+            print type(tf.all_variables())
+            trained_variable = []
+            for variable in tf.trainable_variables():
+                variable_name = variable.name
+                variable_value = variable.eval(sess)
+                if variable_name.find('softmax_linear') < 0 and variable_name.find('spatial_transformer') < 0:
+                    print("trained parameter: %s" %(variable_name))
+                    print variable_value
+                    trained_variable.append(variable)
+
+                    print tf.get_variable(variable_name)
+
+            
+            #saver = tf.train.Saver({""})
+            trained_model = FLAGS.trained_model
+            print trained_model
+
 
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(sess=sess, coord=coord)

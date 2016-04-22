@@ -25,6 +25,10 @@ class ImageInput(object):
         self.labels = np.array([p[1] for p in gt_pairs])
         set_labels = set(self.labels)
         self.list_labels = [label for label in set_labels]
+        with open('./train/labels_list.txt', "w") as f:
+            for i, label in enumerate(self.list_labels):
+                f.write("NO.%d: %s" % (i, label))
+                f.write("\n")
         self.num_classes = len(self.list_labels)
         self.batches = []
         print("the number of training sets: %d" % (len(self.image_paths)))

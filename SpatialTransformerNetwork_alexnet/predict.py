@@ -76,7 +76,7 @@ if __name__ == '__main__':
     sess.run(tf.initialize_all_variables())
 
     # restore trained model
-    ckpt = tf.train.get_checkpoint_state('train_save')
+    ckpt = tf.train.get_checkpoint_state('trained_model')
     print(ckpt.model_checkpoint_path)
     if ckpt and ckpt.model_checkpoint_path:
         saver.restore(sess, ckpt.model_checkpoint_path)

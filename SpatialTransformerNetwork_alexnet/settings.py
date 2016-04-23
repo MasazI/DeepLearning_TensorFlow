@@ -6,17 +6,17 @@ flags = tf.app.flags
 FLAGS = flags.FLAGS
 
 # train settings
-flags.DEFINE_integer('batch_size', 2, 'the number of images in a batch.')
+flags.DEFINE_integer('batch_size', 100, 'the number of images in a batch.')
 flags.DEFINE_string('train_tfrecords', 'path/to/tfrecords', 'path to tfrecords file for train.')
 flags.DEFINE_integer('image_height', 256, 'image height.')
 flags.DEFINE_integer('image_width', 256, 'image width.')
 flags.DEFINE_integer('image_depth', 3, 'image depth.')
 flags.DEFINE_integer('crop_size', 224, 'crop size of image.')
-flags.DEFINE_float('learning_rate', 1e-3, 'initial learning rate.')
+flags.DEFINE_float('learning_rate', 1e-5, 'initial learning rate.')
 flags.DEFINE_float('learning_rate_decay_factor', 0.9, 'learning rate decay factor.')
 flags.DEFINE_float('num_epochs_per_decay', 350.0, 'epochs after which learning rate decays.')
 flags.DEFINE_float('moving_average_decay', 0.9999, 'decay to use for the moving averate.')
-flags.DEFINE_integer('num_examples_per_epoch_for_train', 200, 'the number of examples per epoch train.')
+flags.DEFINE_integer('num_examples_per_epoch_for_train', 10000, 'the number of examples per epoch train.')
 flags.DEFINE_integer('num_examples_per_epoch_for_eval', 20, 'the number of examples per eposh eval.')
 flags.DEFINE_string('tower_name', 'tower', 'multiple GPU prefix.')
 flags.DEFINE_integer('num_classes', 101, 'the number of classes.')

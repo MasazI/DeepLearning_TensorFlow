@@ -28,6 +28,7 @@ import settings
 FLAGS = settings.FLAGS
 
 TRAIN_DIR = FLAGS.train_dir
+PRETRAIN_DIR = FLAGS.pretrain_dir
 MAX_STEPS = FLAGS.max_steps
 LOG_DEVICE_PLACEMENT = FLAGS.log_device_placement
 TF_RECORDS = FLAGS.train_tfrecords
@@ -81,31 +82,51 @@ def train():
 
         # Session
         sess = tf.Session(config=tf.ConfigProto(log_device_placement=LOG_DEVICE_PLACEMENT))
-        sess.run(init_op)
 
         # saver
-        saver = tf.train.Saver(tf.all_variables())
+        #saver = tf.train.Saver(tf.all_variables())
+
+        sess.run(init_op)    
+        # pretrainと全体を分けて保存
+        pretrain_params = {}
+        train_params = {}
+        for variable in tf.trainable_variables():
+            variable_name = variable.name
+            #print("parameter: %s" %(variable_name))
+            scope, name = variable_name.split("/")
+            target, _ = name.split(":")
+            if variable_name.find('spatial_transformer') <  0:
+                print("pretrain parameter: %s" %(variable_name))
+                pretrain_params[variable_name] = variable
+            print("train parameter: %s" %(variable_name))
+            train_params[variable_name] = variable
+        saver_cnn = tf.train.Saver(pretrain_params)
+        saver_transformers = tf.train.Saver(train_params)
 
         # pretrained_model
         if FLAGS.fine_tune:
-            # saver
-            print type(tf.all_variables())
-            trained_variable = []
-            for variable in tf.trainable_variables():
-                variable_name = variable.name
-                variable_value = variable.eval(sess)
-                if variable_name.find('softmax_linear') < 0 and variable_name.find('spatial_transformer') < 0:
-                    print("trained parameter: %s" %(variable_name))
-                    print variable_value
-                    trained_variable.append(variable)
+            ckpt = tf.train.get_checkpoint_state(PRETRAIN_DIR)
+            if ckpt and ckpt.model_checkpoint_path:
+                print("Pretrained Model Loading.")
+                saver_cnn.restore(sess, ckpt.model_checkpoint_path)
+                print("Pretrained Model Restored.")
+            else:
+                print("No Pretrained Model.")       
 
-                    print tf.get_variable(variable_name)
-
-            
-            #saver = tf.train.Saver({""})
-            trained_model = FLAGS.trained_model
-            print trained_model
-
+        # pretrained model from another type models.
+        #    # saver
+        #    print type(tf.all_variables())
+        #    for variable in tf.trainable_variables():
+        #        variable_name = variable.name
+        #        variable_value = variable.eval(sess)
+        #        if variable_name.find('softmax_linear') < 0 and variable_name.find('spatial_transformer') < 0:
+        #            print("trained parameter: %s" %(variable_name))
+        #            scope, name = variable_name.split("/")
+        #            target, _ = name.split(":")
+        #            with tf.variable_scope(scope, reuse=True):
+        #                sess.run(tf.get_variable(target).assign(variable_value))
+        #    trained_model = FLAGS.trained_model
+        #    print trained_model
 
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(sess=sess, coord=coord)
@@ -151,15 +172,18 @@ def train():
                 index += 1
                 assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
                 
-                # 1000回ごと
+                # 100回ごと
                 if index % 100 == 0:
                     pass
                     summary_str = sess.run(summary_op, feed_dict={images: train, labels: label, keep_conv: 0.8, keep_hidden: 0.5})
                     # サマリーに書き込む
                     summary_writer.add_summary(summary_str, step)
+            
             if step % 1 == 0 or (step * 1) == MAX_STEPS:
-                checkpoint_path = TRAIN_DIR + '/model.ckpt'
-                saver.save(sess, checkpoint_path, global_step=step)
+                pretrain_checkpoint_path = PRETRAIN_DIR + '/model.ckpt'
+                train_checkpoint_path = TRAIN_DIR + '/model.ckpt'
+                saver_cnn.save(sess, pretrain_checkpoint_path, global_step=step)
+                saver_transformers.save(sess, train_checkpoint_path, global_step=step)
         coord.request_stop()
         coord.join(threads)
         sess.close()

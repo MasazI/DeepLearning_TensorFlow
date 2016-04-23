@@ -38,16 +38,16 @@ def _variable_on_cpu(name, shape, initializer):
     '''
     CPUメモリに変数をストアする
     '''
-    with tf.device('/cpu:0'):
-        var = tf.get_variable(name, shape, initializer=initializer)
+    #with tf.device('/cpu:0'):
+    var = tf.get_variable(name, shape, initializer=initializer)
     return var
 
 def _variable_on_gpu(name, shape, initializer):
     '''
     GPUメモリに変数をストアする
     '''
-    with tf.device('/gpu:0'):
-        var = tf.get_variable(name, shape, initializer=initializer)
+    #with tf.device('/cpu:0'):
+    var = tf.get_variable(name, shape, initializer=initializer)
     return var
 
 def _activation_summary(x):

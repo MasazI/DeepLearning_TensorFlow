@@ -16,6 +16,7 @@ http://tensorflow.org/
 - CaffeNet(AlexNet 2012)
 - BatchNormalization
 - SpatialTransfomerNetwork
+- SpatialTransfomerNetwork with AlexNet 2012 (pretrain and fine-tuning structure)
 
 if you use pyenv and anaconda:
 add /path/to/.pyenv/versions/anaconda-2.0.1/bin/ into PATH

@@ -150,7 +150,7 @@ def train():
                     duration = end_time - previous_time
                     num_examples_per_step = BATCH_SIZE * 10
                     examples_per_sec = num_examples_per_step / duration
-                    print("%s: %d[epoch]: %d[iteration]: train loss %f: %d[examples/step]: %f[examples/sec]: %f[sec/iteration]" % (datetime.now(), step, index, loss_value, num_examples_per_step, examples_per_sec, duration))
+                    print("%s: %d[epoch]: %d[iteration]: train loss %f: %d[examples/iteration]: %f[examples/sec]: %f[sec/iteration]" % (datetime.now(), step, index, loss_value, num_examples_per_step, examples_per_sec, duration))
                     index += 1
                     assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
 

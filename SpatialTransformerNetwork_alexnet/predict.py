@@ -72,18 +72,44 @@ if __name__ == '__main__':
     logits = model.inference(images, keep_conv, keep_hidden)
     sess = tf.InteractiveSession()
 
-    saver = tf.train.Saver()
     sess.run(tf.initialize_all_variables())
 
+    pretrain_params = {}
+    train_params = {}
+    for variable in tf.trainable_variables():
+        variable_name = variable.name
+        #print("parameter: %s" %(variable_name))
+        scope, name = variable_name.split("/")
+        target, _ = name.split(":")
+        if variable_name.find('spatial_transformer') <  0:
+            print("pretrain parameter: %s" %(variable_name))
+            pretrain_params[variable_name] = variable
+        print("train parameter: %s" %(variable_name))
+        train_params[variable_name] = variable
+    saver_cnn = tf.train.Saver(pretrain_params)
+    saver_transformers = tf.train.Saver(train_params)
+
     # restore trained model
-    ckpt = tf.train.get_checkpoint_state('trained_model')
-    print(ckpt.model_checkpoint_path)
-    if ckpt and ckpt.model_checkpoint_path:
-        saver.restore(sess, ckpt.model_checkpoint_path)
-        global_step = ckpt.model_checkpoint_path.split('/')[-1].split('-')[-1]
+    print("load pretrain cnn start.")
+    ckpt_cnn = tf.train.get_checkpoint_state('pretrain')
+    print(ckpt_cnn.model_checkpoint_path)
+    if ckpt_cnn and ckpt_cnn.model_checkpoint_path:
+        saver_cnn.restore(sess, ckpt_cnn.model_checkpoint_path)
+        global_step = ckpt_cnn.model_checkpoint_path.split('/')[-1].split('-')[-1]
     else:
-        print('No checkpoint file found.')
+        print('No checkpoint pretrain file found.')
         quit()
+    print("load pretrain cnn done.")
+    print("load transformers start.")
+    ckpt_transformers = tf.train.get_checkpoint_state('train')
+    print(ckpt_transformers.model_checkpoint_path)
+    if ckpt_transformers and ckpt_transformers.model_checkpoint_path:
+        saver_transformers.restore(sess, ckpt_transformers.model_checkpoint_path)
+        global_step_transformers = ckpt_transformers.model_checkpoint_path.split('/')[-1].split('-')[-1]
+    else:
+        print('No checkpoint pretrain file found.')
+        quit()
+    print("load transformers done.")
 
     # predict
     print('the num of test images: %d' % (len(test_image)))

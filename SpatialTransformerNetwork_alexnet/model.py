@@ -109,7 +109,7 @@ def inference(images, keep_conv, keep_hidden):
             stddev=0.01,
             wd=0.0 # not use weight decay
         )
-        conv = tf.nn.conv2d(images, kernel, [1, 4, 4, 1], padding='SAME')
+        conv = tf.nn.conv2d(hidden_trans, kernel, [1, 4, 4, 1], padding='SAME')
         biases = _variable_on_gpu('biases', [64], tf.constant_initializer(0.1))
         bias = tf.nn.bias_add(conv, biases)
         conv1 = tf.nn.relu(bias, name=scope.name)

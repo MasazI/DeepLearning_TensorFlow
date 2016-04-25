@@ -14,7 +14,7 @@ import numpy as np
 import tensorflow as tf
 
 import cv2
-
+from PIL import Image
 import model
 
 #import cnn_tiny_settings as settings
@@ -69,7 +69,7 @@ if __name__ == '__main__':
     keep_conv = tf.placeholder(tf.float32)
     keep_hidden = tf.placeholder(tf.float32)
 
-    logits = model.inference(images, keep_conv, keep_hidden)
+    logits, transform_result = model.inference(images, keep_conv, keep_hidden)
     sess = tf.InteractiveSession()
 
     sess.run(tf.initialize_all_variables())
@@ -116,7 +116,16 @@ if __name__ == '__main__':
     for i in range(len(test_image)):
         start_time = time.time()
         softmax = logits.eval(feed_dict={images: test_image[i], keep_conv: 1.0, keep_hidden: 1.0}) [0]
+        transform_image = sess.run(transform_result, feed_dict={images: test_image[i], keep_conv: 1.0, keep_hidden: 1.0})
         print(softmax)
+        reshape_transform_image = np.reshape(transform_image, (224, 224, 3))
+        print(reshape_transform_image.shape)
+        disp_image = np.rollaxis(reshape_transform_image, 2)
+        print(np.rollaxis(reshape_transform_image, 2).shape)
+        print(type(disp_image))
+        show_image = Image.fromarray(np.uint8(reshape_transform_image))
+        show_image.show()
+
         pred = np.argmax(softmax)
         duration = time.time() - start_time
         print('category: %i, duration: %f (sec)' % (pred, duration))

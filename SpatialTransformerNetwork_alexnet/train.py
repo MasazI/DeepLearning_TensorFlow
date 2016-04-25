@@ -63,7 +63,7 @@ def train():
         keep_hidden = tf.placeholder(tf.float32)
 
         # graphのoutput
-        logits = model.inference(images, keep_conv, keep_hidden)
+        logits, transform_result = model.inference(images, keep_conv, keep_hidden)
 
         # loss graphのoutputとlabelを利用
         # loss = model.loss(logits, labels)

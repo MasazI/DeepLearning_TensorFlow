@@ -246,7 +246,7 @@ def inference(images, keep_conv, keep_hidden):
         softmax_linear = tf.nn.xw_plus_b(fc7_dropout, weights, biases, name=scope.name)
         _activation_summary(softmax_linear)
     
-    return softmax_linear
+    return softmax_linear, hidden_trans
 
 
 def loss(logits, labels):

@@ -30,8 +30,7 @@ class ImageInput(object):
             h, w, c = img.shape
             crop_height, crop_width = ((h-crop_size_h)/2, (w-crop_size_w)/2)
             img = img[crop_height:crop_height+crop_size_h, crop_width:crop_width+crop_size_w, :]
-            img = img[None, ...]
-            print img.shape
+            #img = img[None, ...]
             images.append(img)
             ra_depth = depth.transpose(1, 0)
             depths.append(ra_depth)

@@ -22,9 +22,17 @@ class ImageInput(object):
         f = h5py.File(nyu_mat_path)
         images = []
         depths = []
+        crop_size_h = FLAGS.crop_size_height
+        crop_size_w = FLAGS.crop_size_width
         for i, (image, depth) in enumerate(zip(f['images'], f['depths'])):
             ra_image = image.transpose(2, 1, 0)
-            images.append(ra_image)
+            img = ra_image.astype(np.float32)
+            h, w, c = img.shape
+            crop_height, crop_width = ((h-crop_size_h)/2, (w-crop_size_w)/2)
+            img = img[crop_height:crop_height+crop_size_h, crop_width:crop_width+crop_size_w, :]
+            img = img[None, ...]
+            print img.shape
+            images.append(img)
             ra_depth = depth.transpose(1, 0)
             depths.append(ra_depth)
         self.images = images

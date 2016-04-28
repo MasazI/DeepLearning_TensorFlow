@@ -63,7 +63,7 @@ def train():
         keep_hidden = tf.placeholder(tf.float32)
 
         # graphのoutput
-        logits = model.inference(images, keep_conv, keep_hidden)
+        logits, logits_fine = model.inference(images, keep_conv, keep_hidden)
 
         # loss graphのoutputとlabelを利用
         # loss = model.loss(logits, labels)
@@ -119,8 +119,9 @@ def train():
         #summary_writer = tf.train.SummaryWriter(TRAIN_DIR, graph_def=sess.graph_def)
 
         batches = image_input.get_batches(FLAGS.batch_size)
-        logits = sess.run([logits], feed_dict={images: batches[0][0], keep_conv: 1.0, keep_hidden: 1.0})
-        print logits 
+        logits_val, logits_fine_val = sess.run([logits, logits_fine], feed_dict={images: batches[0][0], keep_conv: 1.0, keep_hidden: 1.0})
+        print len(logits_val[0])
+        print len(logits_fine_val[0])
 
         # max_stepまで繰り返し学習
         #for step in xrange(MAX_STEPS):

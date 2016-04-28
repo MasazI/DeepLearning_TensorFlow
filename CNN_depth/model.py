@@ -63,6 +63,11 @@ def inference(images, keep_conv, keep_hidden):
     '''
     アーキテクチャの定義、グラフのビルド
     '''
+    print "="*100
+    print "input"
+    print images.get_shape()
+    print "="*100
+
     # course1 input image 11x11conv, 4stride -> 155, 115, 96
     with tf.variable_scope('coarse1') as scope:
         kernel = _variable_with_weight_decay(
@@ -71,21 +76,23 @@ def inference(images, keep_conv, keep_hidden):
             stddev=0.01,
             wd=0.0 # not use weight decay
         )
-        conv = tf.nn.conv2d(images, kernel, [1, 4, 4, 1], padding='SAME')
+        conv = tf.nn.conv2d(images, kernel, [1, 4, 4, 1], padding='VALID')
         biases = _variable_on_gpu('biases', [96], tf.constant_initializer(0.1))
         bias = tf.nn.bias_add(conv, biases)
         coarse1_conv = tf.nn.relu(bias, name=scope.name)
         _activation_summary(coarse1_conv)
 
     print "="*100
+    print "coarse1 conv"
     print coarse1_conv.get_shape()
     print "="*100
 
     # coarse1 kernel 2x2, stride 1, output_map -> 154, 114, 96
-    coarse1 = tf.nn.max_pool(coarse1_conv, ksize=[1, 2, 2, 1], strides=[1, 1, 1, 1], padding='VALID', name='pool1')
+    coarse1 = tf.nn.max_pool(coarse1_conv, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='VALID', name='pool1')
 
 
     print "="*100
+    print "coarse1"
     print coarse1.get_shape()
     print "="*100
  
@@ -97,20 +104,22 @@ def inference(images, keep_conv, keep_hidden):
             stddev=0.01,
             wd=0.0 # not use weight decay
         )
-        conv = tf.nn.conv2d(coarse1, kernel, [1, 1, 1, 1], padding='SAME')
+        conv = tf.nn.conv2d(coarse1, kernel, [1, 1, 1, 1], padding='VALID')
         biases = _variable_on_gpu('biases', [256], tf.constant_initializer(0.1))
         bias = tf.nn.bias_add(conv, biases)
         coarse2_conv = tf.nn.relu(bias, name=scope.name)
         _activation_summary(coarse2_conv)
 
     print "="*100
+    print "coarse2 conv"
     print coarse2_conv.get_shape()
     print "="*100
 
     # pool1 kernel 2x2, stride 1, output_map ??x??x??
-    coarse2 = tf.nn.max_pool(coarse2_conv, ksize=[1, 2, 2, 1], strides=[1, 1, 1, 1], padding='VALID', name='pool1')
+    coarse2 = tf.nn.max_pool(coarse2_conv, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME', name='pool1')
 
     print "="*100
+    print "coarse2"
     print coarse2.get_shape()
     print "="*100
 
@@ -123,13 +132,14 @@ def inference(images, keep_conv, keep_hidden):
             stddev=0.01,
             wd=0.0 # not use weight decay
         )
-        conv = tf.nn.conv2d(coarse2, kernel, [1, 1, 1, 1], padding='SAME')
+        conv = tf.nn.conv2d(coarse2, kernel, [1, 1, 1, 1], padding='VALID')
         biases = _variable_on_gpu('biases', [384], tf.constant_initializer(0.1))
         bias = tf.nn.bias_add(conv, biases)
         coarse3 = tf.nn.relu(bias, name=scope.name)
         _activation_summary(coarse3)
 
     print "="*100
+    print "coarse3"
     print coarse3.get_shape()
     print "="*100
 
@@ -141,13 +151,14 @@ def inference(images, keep_conv, keep_hidden):
             stddev=0.01,
             wd=0.0 # not use weight decay
         )
-        conv = tf.nn.conv2d(coarse3, kernel, [1, 1, 1, 1], padding='SAME')
+        conv = tf.nn.conv2d(coarse3, kernel, [1, 1, 1, 1], padding='VALID')
         biases = _variable_on_gpu('biases', [384], tf.constant_initializer(0.1))
         bias = tf.nn.bias_add(conv, biases)
         coarse4 = tf.nn.relu(bias, name=scope.name)
         _activation_summary(coarse4)
 
     print "="*100
+    print "coarse4"
     print coarse4.get_shape()
     print "="*100
 
@@ -159,56 +170,110 @@ def inference(images, keep_conv, keep_hidden):
             stddev=0.01,
             wd=0.0 # not use weight decay
         )
-        conv = tf.nn.conv2d(coarse4, kernel, [1, 1, 1, 1], padding='SAME')
+        conv = tf.nn.conv2d(coarse4, kernel, [1, 1, 1, 1], padding='VALID')
         biases = _variable_on_gpu('biases', [256], tf.constant_initializer(0.1))
         bias = tf.nn.bias_add(conv, biases)
         coarse5 = tf.nn.relu(bias, name=scope.name)
         _activation_summary(coarse5)
 
     print "="*100
+    print "coarse5 to full layer"
     print coarse5.get_shape()
     print "="*100
 
-    # coarse6
-    with tf.variable_scope('coarse6') as scope:
-        kernel = _variable_with_weight_decay(
+    # coarse6 full layer
+    with tf.variable_scope('coarse6'):
+        # input_shape = coarse5.get_shape()
+        coarse5_flat = tf.reshape(coarse5, [-1, 6*10*256])
+        weights = _variable_with_weight_decay(
             'weights',
-            shape=[1, 1, 256, 256],
+            [6*10*256, 4096],
             stddev=0.01,
-            wd=0.0 # not use weight decay
-        )
-        conv = tf.nn.conv2d(coarse5, kernel, [1, 1, 1, 1], padding='SAME')
-        biases = _variable_on_gpu('biases', [256], tf.constant_initializer(0.1))
-        bias = tf.nn.bias_add(conv, biases)
-        coarse6 = tf.nn.relu(bias, name=scope.name)
+            wd=0.04)
+        biases = _variable_on_gpu('biases', 4096, tf.constant_initializer(0.1))
+        coarse6 = tf.nn.relu_layer(coarse5_flat, weights, biases, name=scope.name)
         _activation_summary(coarse6)
 
     print "="*100
+    print "coarse6 to full layer"
     print coarse6.get_shape()
     print "="*100
 
-    # coarse7
-    with tf.variable_scope('coarse7') as scope:
-        kernel = _variable_with_weight_decay(
+    # course7 full layer
+    with tf.variable_scope('coarse7'):
+        # input_shape = coarse5.get_shape()
+        weights = _variable_with_weight_decay(
             'weights',
-            shape=[1, 1, 256, 4096],
+            [4096, 4070],
             stddev=0.01,
-            wd=0.0 # not use weight decay
-        )
-        conv = tf.nn.conv2d(coarse6, kernel, [1, 1, 1, 1], padding='SAME')
-        biases = _variable_on_gpu('biases', [4096], tf.constant_initializer(0.1))
-        bias = tf.nn.bias_add(conv, biases)
-        coarse7 = tf.nn.relu(bias, name=scope.name)
+            wd=0.04)
+        biases = _variable_on_gpu('biases', 4070, tf.constant_initializer(0.1))
+        coarse7 = tf.nn.relu_layer(coarse6, weights, biases, name=scope.name)
         _activation_summary(coarse7)
 
     print "="*100
+    print "coarse6 to full layer"
     print coarse7.get_shape()
     print "="*100
 
-    return coarse7
+    coarse7_output = tf.reshape(coarse7, [-1, 55, 74, 1])
 
-def inference_fine(images, coarse, keep_conv, keep_hidden):
-    pass 
+    print "="*100
+    print "coarse7"
+    print coarse7_output.get_shape()
+    print "="*100
+
+    # fine1 input image 9x9conv, 2stride -> , , 
+    with tf.variable_scope('fine1') as scope:
+        kernel = _variable_with_weight_decay(
+            'weights',
+            shape=[9, 9, 3, 63],
+            stddev=0.01,
+            wd=0.0 # not use weight decay
+        )
+        conv = tf.nn.conv2d(images, kernel, [1, 2, 2, 1], padding='VALID')
+        biases = _variable_on_gpu('biases', [63], tf.constant_initializer(0.1))
+        bias = tf.nn.bias_add(conv, biases)
+        fine1_conv = tf.nn.relu(bias, name=scope.name)
+        _activation_summary(fine1_conv)
+
+    print "="*100
+    print "fine1 conv"
+    print fine1_conv.get_shape()
+    print "="*100
+
+    # fine1 kernel 2x2, stride 1, output_map -> , , 
+    fine1 = tf.nn.max_pool(fine1_conv, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name='pool1')
+
+    print "="*100
+    print "fine1"
+    print fine1.get_shape()
+    print "="*100
+  
+
+    # concatenate fine1 and coarse7
+     
+
+
+    # fine2 input image 5x5conv, 2stride -> , , 
+    with tf.variable_scope('fine1') as scope:
+        kernel = _variable_with_weight_decay(
+            'weights',
+            shape=[9, 9, 3, 63],
+            stddev=0.01,
+            wd=0.0 # not use weight decay
+        )
+        conv = tf.nn.conv2d(images, kernel, [1, 2, 2, 1], padding='VALID')
+        biases = _variable_on_gpu('biases', [63], tf.constant_initializer(0.1))
+        bias = tf.nn.bias_add(conv, biases)
+        fine1_conv = tf.nn.relu(bias, name=scope.name)
+        _activation_summary(fine1_conv)
+
+
+ 
+    return coarse7_output, fine1 
+
+
 
 
 def loss(logits, labels):

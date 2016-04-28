@@ -58,7 +58,7 @@ def train():
         print("the number of train data: %d" % (len(image_input.images)))
 
         images = tf.placeholder(tf.float32, [None, FLAGS.crop_size_height, FLAGS.crop_size_width, FLAGS.image_depth])
-        labels = tf.placeholder(tf.float32, [None, FLAGS.num_classes])
+        labels = tf.placeholder(tf.float32, [None, 55, 74, 1])
         keep_conv = tf.placeholder(tf.float32)
         keep_hidden = tf.placeholder(tf.float32)
 
@@ -66,7 +66,7 @@ def train():
         logits, logits_fine = model.inference(images, keep_conv, keep_hidden)
 
         # loss graphのoutputとlabelを利用
-        # loss = model.loss(logits, labels)
+        loss = model.loss(logits_fine, labels)
         
         #loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits, labels))
 

@@ -251,29 +251,52 @@ def inference(images, keep_conv, keep_hidden):
     print "="*100
   
 
-    # concatenate fine1 and coarse7
-     
+    # concatenate fine1 and coarse7_output
+    fine2 = tf.concat(3, [fine1, coarse7_output])
 
+    print "="*100
+    print "fine2"
+    print fine2.get_shape()
+    print "="*100
+ 
 
-    # fine2 input image 5x5conv, 2stride -> , , 
-    with tf.variable_scope('fine1') as scope:
+    with tf.variable_scope('fine3') as scope:
         kernel = _variable_with_weight_decay(
             'weights',
-            shape=[9, 9, 3, 63],
+            shape=[5, 5, 64, 64],
             stddev=0.01,
             wd=0.0 # not use weight decay
         )
-        conv = tf.nn.conv2d(images, kernel, [1, 2, 2, 1], padding='VALID')
-        biases = _variable_on_gpu('biases', [63], tf.constant_initializer(0.1))
+        conv = tf.nn.conv2d(fine2, kernel, [1, 1, 1, 1], padding='SAME')
+        biases = _variable_on_gpu('biases', [64], tf.constant_initializer(0.1))
         bias = tf.nn.bias_add(conv, biases)
-        fine1_conv = tf.nn.relu(bias, name=scope.name)
-        _activation_summary(fine1_conv)
+        fine3 = tf.nn.relu(bias, name=scope.name)
+        _activation_summary(fine3)
 
-
+    print "="*100
+    print "fine3"
+    print fine3.get_shape()
+    print "="*100
  
-    return coarse7_output, fine1 
+    with tf.variable_scope('fine4') as scope:
+        kernel = _variable_with_weight_decay(
+            'weights',
+            shape=[5, 5, 64, 1],
+            stddev=0.01,
+            wd=0.0 # not use weight decay
+        )
+        conv = tf.nn.conv2d(fine2, kernel, [1, 1, 1, 1], padding='SAME')
+        biases = _variable_on_gpu('biases', [1], tf.constant_initializer(0.1))
+        bias = tf.nn.bias_add(conv, biases)
+        fine4 = tf.nn.relu(bias, name=scope.name)
+        _activation_summary(fine4)
 
-
+    print "="*100
+    print "fine4"
+    print fine4.get_shape()
+    print "="*100
+ 
+    return coarse7_output, fine4
 
 
 def loss(logits, labels):

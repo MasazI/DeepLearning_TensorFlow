@@ -24,6 +24,7 @@ flags.DEFINE_integer('num_classes', 101, 'the number of classes.')
 flags.DEFINE_integer('num_threads', 4, 'the number of threads.')
 flags.DEFINE_boolean('fine_tune', False, 'is use pre-trained model in trained_model')
 flags.DEFINE_string('trained_model', 'trained_model', 'where to saved trained model for fine tuning.')
+flags.DEFINE_float('lambda', 0.5, 'rate of the scale invaliant error.')
 
 # output logs settings
 flags.DEFINE_string('train_dir', 'train', 'directory where to write even logs and checkpoint')

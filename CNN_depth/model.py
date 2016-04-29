@@ -10,6 +10,7 @@ import tensorflow as tf
 
 import spatial
 import numpy as np
+import math
 
 # settings
 import settings
@@ -298,16 +299,27 @@ def inference(images, keep_conv, keep_hidden):
  
     return coarse7_output, fine4
 
+def loss(logits, depths, invalid_depths):
+    logits_flat = tf.reshape(logits, [-1, 55*74])
+    depths_flat = tf.reshape(depths, [-1, 55*74])
+    invalid_depths_flat = tf.reshape(depths, [-1, 55*74])
+    
+    # ignore 0 depths in ground truth.
+    predict = tf.mul(logits_flat, invalid_depths_flat)
+    target = tf.mul(depths_flat, invalid_depths_flat)
+    d = tf.sub(predict, target)
 
-def loss(logits, labels):
-    cross_entropy = tf.nn.softmax_cross_entropy_with_logits(
-        logits,
-        labels,
-        name='cross_entropy_per_example'
-    )
-    cross_entropy_mean = tf.reduce_mean(cross_entropy, name='cross_entropy')
-    tf.add_to_collection('losses', cross_entropy_mean)
+    # term1
+    square_d = tf.square(d)
+    sum_square_d = tf.reduce_sum(square_d, 1)
 
+    # term 2
+    sum_d = tf.reduce_sum(d, 1)
+    sqare_sum_d = tf.square(sum_d)
+
+    # term1 - lambda * term2
+    cost = tf.reduce_sum(sum_square_d / 55*74 - FLAGS.si_lambda*sqare_sum_d / math.pow(55*74,2))
+    tf.add_to_collection('losses', cost)
     return tf.add_n(tf.get_collection('losses'), name='total_loss')
 
 

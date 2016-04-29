@@ -58,7 +58,8 @@ def train():
         print("the number of train data: %d" % (len(image_input.images)))
 
         images = tf.placeholder(tf.float32, [None, FLAGS.crop_size_height, FLAGS.crop_size_width, FLAGS.image_depth])
-        labels = tf.placeholder(tf.float32, [None, 55, 74, 1])
+        depths = tf.placeholder(tf.float32, [None, 1, 55, 74])
+        invalid_depths = tf.placeholder(tf.float32, [None, 1, 55, 74])
         keep_conv = tf.placeholder(tf.float32)
         keep_hidden = tf.placeholder(tf.float32)
 
@@ -66,12 +67,10 @@ def train():
         logits, logits_fine = model.inference(images, keep_conv, keep_hidden)
 
         # loss graphのoutputとlabelを利用
-        loss = model.loss(logits_fine, labels)
-        
-        #loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits, labels))
+        loss = model.loss(logits, depths, invalid_depths)
 
         # 学習オペレーション
-        #train_op = op.train(loss, global_step)
+        train_op = op.train(loss, global_step)
 
         # サマリー
         summary_op = tf.merge_all_summaries()
@@ -117,31 +116,36 @@ def train():
 
         # サマリーのライターを設定
         #summary_writer = tf.train.SummaryWriter(TRAIN_DIR, graph_def=sess.graph_def)
-
-        batches = image_input.get_batches(FLAGS.batch_size)
-        logits_val, logits_fine_val = sess.run([logits, logits_fine], feed_dict={images: batches[0][0], keep_conv: 1.0, keep_hidden: 1.0})
-        print len(logits_val[0])
-        print len(logits_fine_val[0])
+        #batches = image_input.get_batches(FLAGS.batch_size)
+        #d = np.asarray(batches[0][0])
+        #print d.shape
+        #a = np.asarray(batches[0][1])
+        #print a.shape
+        #logits_val, logits_fine_val, loss_value = sess.run([logits, logits_fine, loss], feed_dict={images: batches[0][0], depths: batches[0][1], invalid_depths: batches[0][2], keep_conv: 1.0, keep_hidden: 1.0})
+        #print len(logits_val[0])
+        #print len(logits_fine_val[0])
+        #print loss_value
 
         # max_stepまで繰り返し学習
-        #for step in xrange(MAX_STEPS):
-        #    start_time = time.time()
-        #    previous_time = start_time
-        #    index = 0
+        for step in xrange(MAX_STEPS):
+            start_time = time.time()
+            previous_time = start_time
+            index = 0
 
-        #    batches = image_input.get_batches(FLAGS.batch_size)
-        #    for batch in batches:
-        #        train = batch[0]
-        #        label = batch[1]
-        #        _, loss_value = sess.run([train_op, loss], feed_dict={images: train, labels: label, keep_conv: 0.8, keep_hidden: 0.5})
-        #        if index % 10 == 0:
-        #            end_time = time.time()
-        #            duration = end_time - previous_time
-        #            num_examples_per_step = BATCH_SIZE * 10
-        #            examples_per_sec = num_examples_per_step / duration
-        #            print("%s: %d[epoch]: %d[iteration]: train loss %f: %d[examples/iteration]: %f[examples/sec]: %f[sec/iteration]" % (datetime.now(), step, index, loss_value, num_examples_per_step, examples_per_sec, duration))
-        #            index += 1
-        #            assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
+            batches = image_input.get_batches(FLAGS.batch_size)
+            for batch in batches:
+                train = batch[0]
+                depth = batch[1]
+                ignore_depth = batch[2]
+                _, loss_value = sess.run([train_op, loss], feed_dict={images: train, depths: depth, invalid_depths: ignore_depth, keep_conv: 0.8, keep_hidden: 0.5})
+                if index % 10 == 0:
+                    end_time = time.time()
+                    duration = end_time - previous_time
+                    num_examples_per_step = BATCH_SIZE * 10
+                    examples_per_sec = num_examples_per_step / duration
+                    print("%s: %d[epoch]: %d[iteration]: train loss %f: %d[examples/iteration]: %f[examples/sec]: %f[sec/iteration]" % (datetime.now(), step, index, loss_value, num_examples_per_step, examples_per_sec, duration))
+                    index += 1
+                    assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
 
         #            # test_indices = np.arange(len(teX)) # Get A Test Batch
         #            # np.random.shuffle(test_indices)
@@ -158,8 +162,7 @@ def train():
         #            print "="*20
         #            previous_time = end_time
 
-        #        index += 1
-        #        assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
+                index += 1
         #        
         #        # 100回ごと
         #        if index % 100 == 0:

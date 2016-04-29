@@ -5,6 +5,7 @@ import numpy as np
 
 import random
 import h5py
+from PIL import Image
 
 import time
 # settings
@@ -22,20 +23,57 @@ class ImageInput(object):
         f = h5py.File(nyu_mat_path)
         images = []
         depths = []
+        invalid_depths = []
         crop_size_h = FLAGS.crop_size_height
         crop_size_w = FLAGS.crop_size_width
         for i, (image, depth) in enumerate(zip(f['images'], f['depths'])):
+            # transpose width and height and channel
             ra_image = image.transpose(2, 1, 0)
-            img = ra_image.astype(np.float32)
-            h, w, c = img.shape
-            crop_height, crop_width = ((h-crop_size_h)/2, (w-crop_size_w)/2)
-            img = img[crop_height:crop_height+crop_size_h, crop_width:crop_width+crop_size_w, :]
+            
+            # create crop information
+            #img = ra_image.astype(np.float32)
+            #h, w, c = img.shape
+            #crop_height, crop_width = ((h-crop_size_h)/2, (w-crop_size_w)/2)
+            # crop image
+            #img = img[crop_height:crop_height+crop_size_h, crop_width:crop_width+crop_size_w, :]
             #img = img[None, ...]
-            images.append(img)
+            
+            # resize image using PIL
+            image_pil = Image.fromarray(np.uint8(ra_image))
+            image_resize = image_pil.resize((crop_size_w, crop_size_h))
+            image_array = np.asarray(image_resize)
+            #print image_array.shape
+            images.append(image_array)
+            
+            # transpose width and height
             ra_depth = depth.transpose(1, 0)
-            depths.append(ra_depth)
+            
+            # crop depth data
+            # ra_depth = ra_depth[crop_height:crop_height+crop_size_h, crop_width:crop_width+crop_size_w]
+            
+            # resize depth data using PIL
+            re_depth = (ra_depth/np.max(ra_depth))*255.0
+            depth_pil = Image.fromarray(np.uint8(re_depth))
+            # image resize (PIL 1st arg is widht, 2nd arg is height)
+            target_depth = depth_pil.resize((74, 55))
+
+            # add target as numpy array
+            target_array = np.asarray(target_depth)
+            #print target_array.shape
+            depths.append(target_array[None, :])
+
+            invalid_target_array = target_array.copy()
+            #print invalid_target_array.shape
+            #print np.max(invalid_target_array)
+            #print np.min(invalid_target_array)
+            invalid_target_array[invalid_target_array != 0] = 1
+            #print np.max(invalid_target_array)
+            #print np.min(invalid_target_array)
+            invalid_depths.append(invalid_target_array[None, :])
+
         self.images = images
         self.depths = depths
+        self.invalid_depths = depths
         self.batches = []
  
     def get_batches(self, n):
@@ -48,7 +86,8 @@ class ImageInput(object):
                     print("generate batches: size %d, index %d" % (n, i))
                 images = self.images[i:i+n]
                 labels = self.depths[i:i+n]
-                self.batches.append((images, labels))
+                invalid_labels = self.invalid_depths[i:i+n]
+                self.batches.append((images, labels, invalid_labels))
 
         print("shuffle start")
         # 2回shuffle

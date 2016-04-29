@@ -42,7 +42,9 @@ def convert_nyu(path, verbose=False):
     print f['depths']
     for i, (image, depth) in enumerate(zip(f['images'], f['depths'])):
         ra_image = image.transpose(2, 1, 0)
+        #print ra_image.shape
         ra_depth = depth.transpose(1, 0)
+        #print ra_depth.shape
         re_depth = (ra_depth/np.max(ra_depth))*255.0
         image_pil = Image.fromarray(np.uint8(ra_image))
         depth_pil = Image.fromarray(np.uint8(re_depth))
@@ -50,6 +52,12 @@ def convert_nyu(path, verbose=False):
         image_pil.save(image_name)
         depth_name = "nyu_datasets/%05d.png" % (i)
         depth_pil.save(depth_name)
+        depth_resize_name = "nyu_datasets/%05d_resize.png" % (i)
+        depth_resize = depth_pil.resize((74, 55))
+        depth_resize.save(depth_resize_name)
+        depth_resize_array = np.asarray(depth_resize)
+        #print depth_resize_array.shape
+
         if verbose:
             plt.subplot(121)
             plt.imshow(ra_image)

@@ -6,14 +6,14 @@ flags = tf.app.flags
 FLAGS = flags.FLAGS
 
 # train settings
-flags.DEFINE_integer('batch_size', 1, 'the number of images in a batch.')
+flags.DEFINE_integer('batch_size', 5, 'the number of images in a batch.')
 flags.DEFINE_string('train_tfrecords', 'path/to/tfrecords', 'path to tfrecords file for train.')
 flags.DEFINE_integer('image_height', 480, 'image height.')
 flags.DEFINE_integer('image_width', 640, 'image width.')
 flags.DEFINE_integer('image_depth', 3, 'image depth.')
 flags.DEFINE_integer('crop_size_height', 228, 'crop size of image height.')
 flags.DEFINE_integer('crop_size_width', 304, 'crop size of image height.')
-flags.DEFINE_float('learning_rate', 1e-5, 'initial learning rate.')
+flags.DEFINE_float('learning_rate', 1e-3, 'initial learning rate.')
 flags.DEFINE_float('learning_rate_decay_factor', 0.9, 'learning rate decay factor.')
 flags.DEFINE_float('num_epochs_per_decay', 350.0, 'epochs after which learning rate decays.')
 flags.DEFINE_float('moving_average_decay', 0.9999, 'decay to use for the moving averate.')
@@ -22,9 +22,9 @@ flags.DEFINE_integer('num_examples_per_epoch_for_eval', 20, 'the number of examp
 flags.DEFINE_string('tower_name', 'tower', 'multiple GPU prefix.')
 flags.DEFINE_integer('num_classes', 101, 'the number of classes.')
 flags.DEFINE_integer('num_threads', 4, 'the number of threads.')
-flags.DEFINE_boolean('fine_tune', False, 'is use pre-trained model in trained_model')
+flags.DEFINE_boolean('fine_tune', True, 'is use pre-trained model in trained_model')
 flags.DEFINE_string('trained_model', 'trained_model', 'where to saved trained model for fine tuning.')
-flags.DEFINE_float('lambda', 0.5, 'rate of the scale invaliant error.')
+flags.DEFINE_float('si_lambda', 0.5, 'rate of the scale invaliant error.')
 
 # output logs settings
 flags.DEFINE_string('train_dir', 'train', 'directory where to write even logs and checkpoint')

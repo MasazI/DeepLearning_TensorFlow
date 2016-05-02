@@ -318,7 +318,7 @@ def loss(logits, depths, invalid_depths):
     sqare_sum_d = tf.square(sum_d)
 
     # term1 - lambda * term2
-    cost = tf.reduce_sum(sum_square_d / 55*74 - FLAGS.si_lambda*sqare_sum_d / math.pow(55*74,2))
+    cost = tf.reduce_mean(sum_square_d / 55*74 - FLAGS.si_lambda*sqare_sum_d / math.pow(55*74, 2))
     tf.add_to_collection('losses', cost)
     return tf.add_n(tf.get_collection('losses'), name='total_loss')
 

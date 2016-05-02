@@ -82,7 +82,7 @@ def train():
         sess = tf.Session(config=tf.ConfigProto(log_device_placement=LOG_DEVICE_PLACEMENT))
 
         # saver
-        #saver = tf.train.Saver(tf.all_variables())
+        saver = tf.train.Saver(tf.all_variables())
 
         sess.run(init_op)    
         # pretrainと全体を分けて保存
@@ -102,14 +102,14 @@ def train():
         #saver_transformers = tf.train.Saver(train_params)
 
         # pretrained_model
-        #if FLAGS.fine_tune:
-        #    ckpt = tf.train.get_checkpoint_state(PRETRAIN_DIR)
-        #    if ckpt and ckpt.model_checkpoint_path:
-        #        print("Pretrained Model Loading.")
-        #        saver_cnn.restore(sess, ckpt.model_checkpoint_path)
-        #        print("Pretrained Model Restored.")
-        #    else:
-        #        print("No Pretrained Model.")       
+        if FLAGS.fine_tune:
+            ckpt = tf.train.get_checkpoint_state(PRETRAIN_DIR)
+            if ckpt and ckpt.model_checkpoint_path:
+                print("Pretrained Model Loading.")
+                saver.restore(sess, ckpt.model_checkpoint_path)
+                print("Pretrained Model Restored.")
+            else:
+                print("No Pretrained Model.")       
 
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(sess=sess, coord=coord)
@@ -160,22 +160,21 @@ def train():
         #            print predict
         #            print("test loss: %f" % (cost_value))
         #            print "="*20
-        #            previous_time = end_time
 
+                    previous_time = end_time
                 index += 1
-        #        
+                
         #        # 100回ごと
-        #        if index % 100 == 0:
-        #            pass
+                if index % 100 == 0:
+                    pass
         #            summary_str = sess.run(summary_op, feed_dict={images: train, labels: label, keep_conv: 0.8, keep_hidden: 0.5})
         #            # サマリーに書き込む
         #            summary_writer.add_summary(summary_str, step)
         #    
-        #    if step % 1 == 0 or (step * 1) == MAX_STEPS:
-        #        pretrain_checkpoint_path = PRETRAIN_DIR + '/model.ckpt'
-        #        train_checkpoint_path = TRAIN_DIR + '/model.ckpt'
-        #        saver_cnn.save(sess, pretrain_checkpoint_path, global_step=step)
-        #        saver_transformers.save(sess, train_checkpoint_path, global_step=step)
+            if step % 5 == 0 or (step * 1) == MAX_STEPS:
+                # coarse train
+                pretrain_checkpoint_path = PRETRAIN_DIR + '/model.ckpt'
+                saver.save(sess, pretrain_checkpoint_path, global_step=step)
         coord.request_stop()
         coord.join(threads)
         sess.close()

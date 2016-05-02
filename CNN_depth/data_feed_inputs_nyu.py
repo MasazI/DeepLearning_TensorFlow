@@ -24,6 +24,9 @@ class ImageInput(object):
         images = []
         depths = []
         invalid_depths = []
+        images_depths_invalid = []
+        images_depths_invalid_test = []
+        images_depths_invalid_val = []
         crop_size_h = FLAGS.crop_size_height
         crop_size_w = FLAGS.crop_size_width
         for i, (image, depth) in enumerate(zip(f['images'], f['depths'])):
@@ -71,8 +74,29 @@ class ImageInput(object):
             #print np.min(invalid_target_array)
             invalid_depths.append(invalid_target_array[None, :])
 
+            # append summary array
+            cnum = random.random()
+            if cnum <= 0.08:
+                # for test
+                images_depths_invalid_test.append((image_array, target_array[None, :], invalid_target_array[None, :]))
+            elif 0.08 < cnum and cnum < 0.16:
+                # for validataion
+                images_depths_invalid_val.append((image_array, target_array[None, :], invalid_target_array[None, :]))
+            else:
+                # for train
+                images_depths_invalid.append((image_array, target_array[None, :], invalid_target_array[None, :]))
+ 
+
         self.images = images
         self.depths = depths
+        self.images_depths_invalid = images_depths_invalid
+        self.images_depths_invalid_test = images_depths_invalid_test
+        self.images_depths_invalid_val = images_depths_invalid_val
+
+        print("num of train: %d" % (len(images_depths_invalid)))
+        print("num of test: %d" % (len(images_depths_invalid_test)))
+        print("num of validation: %d" % (len(images_depths_invalid_val)))
+
         self.invalid_depths = depths
         self.batches = []
  
@@ -80,22 +104,34 @@ class ImageInput(object):
         '''
         ミニバッチを返す
         '''
-        if len(self.batches) == 0:
-            for i in xrange(0, len(self.images), n):
-                if i % 500 == 0:
-                    print("generate batches: size %d, index %d" % (n, i))
-                images = self.images[i:i+n]
-                labels = self.depths[i:i+n]
-                invalid_labels = self.invalid_depths[i:i+n]
-                self.batches.append((images, labels, invalid_labels))
+        print("shuffle start.")
+        random.shuffle(self.images_depths_invalid)
+        random.shuffle(self.images_depths_invalid)
+        print("shuffle done.")
 
-        print("shuffle start")
+        self.batches = []
+        for i in xrange(0, len(self.images_depths_invalid), n):
+            if i % 500 == 0:
+                print("generate batches: size %d, index %d" % (n, i))
+            images_depths_invalid = self.images_depths_invalid[i:i+n]
+            images = [a[0] for a in images_depths_invalid]
+            labels = [a[1] for a in images_depths_invalid]
+            invalid_labels = [a[2] for a in images_depths_invalid]
+            self.batches.append((images, labels, invalid_labels))
+
+        #print("batch shuffle start")
         # 2回shuffle
-        random.shuffle(self.batches)
-        random.shuffle(self.batches)
-        print("shuffle done")
+        #random.shuffle(self.batches)
+        #random.shuffle(self.batches)
+        #print("batch shuffle done")
         print("the number of batches: %d" % (len(self.batches)))
         return self.batches
+
+    def get_test(self, n):
+        pass
+
+    def get_validation(self, n):
+        pass
 
     def __len__(self):
         return len(self.labels)

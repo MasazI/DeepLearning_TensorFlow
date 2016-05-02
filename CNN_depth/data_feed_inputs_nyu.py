@@ -57,8 +57,8 @@ class ImageInput(object):
             # image resize (PIL 1st arg is widht, 2nd arg is height)
             target_depth = depth_pil.resize((74, 55))
 
-            # add target as numpy array
-            target_array = np.asarray(target_depth)
+            # add target as numpy array and change to 0~1
+            target_array = np.asarray(target_depth)/255.0
             #print target_array.shape
             depths.append(target_array[None, :])
 

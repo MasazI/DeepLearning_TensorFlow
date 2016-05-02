@@ -8,7 +8,6 @@ import sys
 # tensorflow
 import tensorflow as tf
 
-import spatial
 import numpy as np
 import math
 

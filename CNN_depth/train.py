@@ -27,8 +27,10 @@ from data_feed_inputs_nyu import ImageInput
 import settings
 FLAGS = settings.FLAGS
 
-TRAIN_DIR = FLAGS.train_dir
-PRETRAIN_DIR = FLAGS.pretrain_dir
+
+COARSE_DIR = FLAGS.coarse_dir
+REFINE_DIR = FLAGS.refine_dir
+
 MAX_STEPS = FLAGS.max_steps
 LOG_DEVICE_PLACEMENT = FLAGS.log_device_placement
 TF_RECORDS = FLAGS.train_tfrecords
@@ -53,7 +55,7 @@ def train():
         # globalなstep数
         global_step = tf.Variable(0, trainable=False)
 
-        # NYU Dataset V2 (480 x 640 x 3) -> crop -> (460 x 620 x 3)
+        # NYU Dataset V2 original size(480 x 640 x 3) -> crop -> (460 x 620 x 3)
         image_input = ImageInput('./data/nyu_depth_v2_labeled.mat')
         print("the number of train data: %d" % (len(image_input.images)))
 
@@ -82,41 +84,66 @@ def train():
         sess = tf.Session(config=tf.ConfigProto(log_device_placement=LOG_DEVICE_PLACEMENT))
 
         # saver
-        saver = tf.train.Saver(tf.all_variables())
+        #saver = tf.train.Saver(tf.all_variables())
 
         sess.run(init_op)    
-        # pretrainと全体を分けて保存
-        #pretrain_params = {}
-        #train_params = {}
-        #for variable in tf.trainable_variables():
-        #    variable_name = variable.name
-        #    #print("parameter: %s" %(variable_name))
-        #    scope, name = variable_name.split("/")
-        #    target, _ = name.split(":")
-        #    if variable_name.find('spatial_transformer') <  0:
-        #        print("pretrain parameter: %s" %(variable_name))
-        #        pretrain_params[variable_name] = variable
-        #    print("train parameter: %s" %(variable_name))
-        #    train_params[variable_name] = variable
-        #saver_cnn = tf.train.Saver(pretrain_params)
-        #saver_transformers = tf.train.Saver(train_params)
 
-        # pretrained_model
+        # coarseとrefineを分けて保存
+        coarse_params = {}
+        refine_params = {}
+        for variable in tf.trainable_variables():
+            variable_name = variable.name
+            print("parameter: %s" %(variable_name))
+            scope, name = variable_name.split("/")
+            target, _ = name.split(":")
+            if variable_name.find('coarse') >= 0:
+                print("coarse parameter: %s" %(variable_name))
+                coarse_params[variable_name] = variable
+            if variable_name.find('fine') >= 0:
+                print("refine parameter: %s" %(variable_name))
+                refine_params[variable_name] = variable
+
+        # define saver
+        saver_coarse = tf.train.Saver(coarse_params)
+        saver_refine = tf.train.Saver(refine_params)
+
+        # fine tune
         if FLAGS.fine_tune:
-            ckpt = tf.train.get_checkpoint_state(PRETRAIN_DIR)
-            if ckpt and ckpt.model_checkpoint_path:
-                print("Pretrained Model Loading.")
-                saver.restore(sess, ckpt.model_checkpoint_path)
-                print("Pretrained Model Restored.")
+            # load coarse paramteters
+            coarse_ckpt = tf.train.get_checkpoint_state(COARSE_DIR)
+            if coarse_ckpt and coarse_ckpt.model_checkpoint_path:
+                print("Pretrained coarse Model Loading.")
+                saver_coarse.restore(sess, coarse_ckpt.model_checkpoint_path)
+                print("Pretrained coarse Model Restored.")
             else:
-                print("No Pretrained Model.")       
+                print("No Pretrained coarse Model.")
 
+            # load refine parameters
+            refine_ckpt = tf.train.get_checkpoint_state(REFINE_DIR)
+            if refine_ckpt and refine_ckpt.model_checkpoint_path:
+                print("Pretrained refine Model Loading.")
+                saver_refine.restore(sess, refine_ckpt.model_checkpoint_path)
+                print("Pretrained refine Model Restored.")
+            else:
+                print("No Pretrained refine Model.")
+
+        # TODO train coarse or refine (change trainable)
+        if not FLAGS.coarse_train:
+            for val in coarse_params:
+                print val
+
+        if not FLAGS.refine_train:
+            for val in coarse_params:
+                print val
+
+        # train refine
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(sess=sess, coord=coord)
 
+        # debug
         # サマリーのライターを設定
         #summary_writer = tf.train.SummaryWriter(TRAIN_DIR, graph_def=sess.graph_def)
-        #batches = image_input.get_batches(FLAGS.batch_size)
+        #batches = image_input.get_batches(FLAGS.batch_size)a
         #d = np.asarray(batches[0][0])
         #print d.shape
         #a = np.asarray(batches[0][1])
@@ -172,19 +199,35 @@ def train():
         #            summary_writer.add_summary(summary_str, step)
         #    
             if step % 5 == 0 or (step * 1) == MAX_STEPS:
-                # coarse train
-                pretrain_checkpoint_path = PRETRAIN_DIR + '/model.ckpt'
-                saver.save(sess, pretrain_checkpoint_path, global_step=step)
+                if FLAGS.train_coarse:
+                    coarse_checkpoint_path = COARSE_DIR + '/model.ckpt'
+                    saver_coarse.save(sess, coarse_checkpoint_path, global_step=step)
+                if FLAGS.train_refine:
+                    refine_checkpoint_path = REFINE_DIR + '/model.ckpt'
+                    saver_refine.save(sess, refine_checkpoint_path, global_step=step)
+
         coord.request_stop()
         coord.join(threads)
         sess.close()
 
 
 def main(argv=None):
-    if gfile.Exists(TRAIN_DIR):
-        gfile.DeleteRecursively(TRAIN_DIR)
-    gfile.MakeDirs(TRAIN_DIR)
+    if not FLAGS.fine_tune and gfile.Exists(COARSE_DIR):
+        #gfile.DeleteRecursively(COARSE_DIR)
+        print("Exist directory, please confirm coarse checkpoint.")
+        exit(0)
+
+    if not FLAGS.fine_tune and gfile.Exists(REFINE_DIR):
+        print("Exist directory, please confirm refine checkpoint.")
+        exit(0)
+
+    if not gfile.Exists(COARSE_DIR):
+        gfile.MakeDirs(COARSE_DIR)
+    if not gfile.Exists(REFINE_DIR):
+        gfile.MakeDirs(REFINE_DIR)
+
     train()
+
 
 if __name__ == '__main__':
     tf.app.run()

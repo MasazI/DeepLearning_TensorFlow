@@ -23,12 +23,14 @@ flags.DEFINE_string('tower_name', 'tower', 'multiple GPU prefix.')
 flags.DEFINE_integer('num_classes', 101, 'the number of classes.')
 flags.DEFINE_integer('num_threads', 4, 'the number of threads.')
 flags.DEFINE_boolean('fine_tune', True, 'is use pre-trained model in trained_model')
+flags.DEFINE_boolean('coarse_train', True, 'train coarse parameters')
+flags.DEFINE_boolean('refine_train', True, 'train refine parameters')
 flags.DEFINE_string('trained_model', 'trained_model', 'where to saved trained model for fine tuning.')
 flags.DEFINE_float('si_lambda', 0.5, 'rate of the scale invaliant error.')
 
 # output logs settings
-flags.DEFINE_string('train_dir', 'train', 'directory where to write even logs and checkpoint')
-flags.DEFINE_string('pretrain_dir', 'pretrain', 'directory where to write even logs and checkpoint')
+flags.DEFINE_string('refine_dir', 'refine', 'directory where to write even logs and checkpoint')
+flags.DEFINE_string('coarse_dir', 'coarse', 'directory where to write even logs and checkpoint')
 flags.DEFINE_integer('max_steps', 10000000, 'the number of batches to run.')
 flags.DEFINE_boolean('log_device_placement', False, 'where to log device placement.')
 

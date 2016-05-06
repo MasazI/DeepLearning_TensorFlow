@@ -128,13 +128,12 @@ def train():
                 print("No Pretrained refine Model.")
 
         # TODO train coarse or refine (change trainable)
-        if not FLAGS.coarse_train:
-            for val in coarse_params:
-                print val
-
-        if not FLAGS.refine_train:
-            for val in coarse_params:
-                print val
+        #if not FLAGS.coarse_train:
+        #    for val in coarse_params:
+        #        print val
+        #if not FLAGS.refine_train:
+        #    for val in coarse_params:
+        #        print val
 
         # train refine
         coord = tf.train.Coordinator()
@@ -160,6 +159,7 @@ def train():
             index = 0
 
             batches = image_input.get_batches(FLAGS.batch_size)
+            vals = image_input.get_validation()
             for batch in batches:
                 train = batch[0]
                 depth = batch[1]
@@ -171,29 +171,19 @@ def train():
                     num_examples_per_step = BATCH_SIZE * 10
                     examples_per_sec = num_examples_per_step / duration
                     print("%s: %d[epoch]: %d[iteration]: train loss %f: %d[examples/iteration]: %f[examples/sec]: %f[sec/iteration]" % (datetime.now(), step, index, loss_value, num_examples_per_step, examples_per_sec, duration))
-                    index += 1
                     assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
 
-        #            # test_indices = np.arange(len(teX)) # Get A Test Batch
-        #            # np.random.shuffle(test_indices)
-        #            # test_indices = test_indices[0:5]
-        #            print "="*20
-        #            testx = train[0:2]
-        #            #print testx
-        #            testy = label[0:2]
-        #            print np.argmax(testy[0])
-        #            print np.argmax(testy[1])
-        #            output_vec, predict, cost_value = sess.run([logits, predict_op, loss], feed_dict={images: testx, labels: testy, keep_conv: 1.0, keep_hidden: 1.0})
-        #            print predict
-        #            print("test loss: %f" % (cost_value))
-        #            print "="*20
+                if index % 50 == 0:
+                    output_vec, cost_value = sess.run([logits, loss], feed_dict={images: vals[0], depths: vals[1], invalid_depths: vals[2], keep_conv: 1.0, keep_hidden: 1.0})
+                    #print type(output_vec)
+                    #print len(output_vec)
+                    print("%s: %d[epoch]: %d[iteration]: validation loss: %f" % (datetime.now(), step, index, cost_value))
 
-                    previous_time = end_time
+                previous_time = end_time
                 index += 1
                 
-        #        # 100回ごと
-                if index % 100 == 0:
-                    pass
+        #        if index % 100 == 0:
+        #            pass
         #            summary_str = sess.run(summary_op, feed_dict={images: train, labels: label, keep_conv: 0.8, keep_hidden: 0.5})
         #            # サマリーに書き込む
         #            summary_writer.add_summary(summary_str, step)

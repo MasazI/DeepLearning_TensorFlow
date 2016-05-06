@@ -127,11 +127,19 @@ class ImageInput(object):
         print("the number of batches: %d" % (len(self.batches)))
         return self.batches
 
-    def get_test(self, n):
-        pass
+    def get_test(self):
+        return self.images_depths_invalid_test
 
-    def get_validation(self, n):
-        pass
+    def get_validation(self):
+        print("shuffle start.")
+        random.shuffle(self.images_depths_invalid_val)
+        random.shuffle(self.images_depths_invalid_val)
+        print("shuffle done.")
+
+        images = [a[0] for a in self.images_depths_invalid_val]
+        labels = [a[1] for a in self.images_depths_invalid_val]
+        invalid_labels = [a[2] for a in self.images_depths_invalid_val]
+        return (images, labels, invalid_labels)
 
     def __len__(self):
         return len(self.labels)

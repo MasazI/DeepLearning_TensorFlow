@@ -199,10 +199,10 @@ def train():
         #            summary_writer.add_summary(summary_str, step)
         #    
             if step % 5 == 0 or (step * 1) == MAX_STEPS:
-                if FLAGS.train_coarse:
+                if FLAGS.coarse_train:
                     coarse_checkpoint_path = COARSE_DIR + '/model.ckpt'
                     saver_coarse.save(sess, coarse_checkpoint_path, global_step=step)
-                if FLAGS.train_refine:
+                if FLAGS.refine_train:
                     refine_checkpoint_path = REFINE_DIR + '/model.ckpt'
                     saver_refine.save(sess, refine_checkpoint_path, global_step=step)
 

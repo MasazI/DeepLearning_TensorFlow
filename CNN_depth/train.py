@@ -20,7 +20,7 @@ import model
 import train_op as op
 
 # inputs
-#import data_inputs
+import data_feed_inputs_nyu
 from data_feed_inputs_nyu import ImageInput
 
 # settings
@@ -175,9 +175,11 @@ def train():
 
                 if index % 50 == 0:
                     output_vec, cost_value = sess.run([logits, loss], feed_dict={images: vals[0], depths: vals[1], invalid_depths: vals[2], keep_conv: 1.0, keep_hidden: 1.0})
-                    #print type(output_vec)
-                    #print len(output_vec)
                     print("%s: %d[epoch]: %d[iteration]: validation loss: %f" % (datetime.now(), step, index, cost_value))
+                    if index % 100 == 0:
+                        output_dir = "predicts_%05d_%08d" % (step, index)
+                        print("predicts output: %s" % output_dir)
+                        data_feed_inputs_nyu.output_predict(output_vec, output_dir)
 
                 previous_time = end_time
                 index += 1

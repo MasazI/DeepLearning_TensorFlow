@@ -1,13 +1,13 @@
 #encoding: utf-8
 
-import cv2
-import numpy as np
+from tensorflow.python.platform import gfile
 
+import numpy as np
 import random
 import h5py
 from PIL import Image
-
 import time
+
 # settings
 import settings
 FLAGS = settings.FLAGS
@@ -95,7 +95,22 @@ class ImageInput(object):
 
         print("num of train: %d" % (len(images_depths_invalid)))
         print("num of test: %d" % (len(images_depths_invalid_test)))
+        if not gfile.Exists("test_set"):
+            gfile.MakeDirs("test_set")
+        for i, test_img in enumerate(images_depths_invalid_test):
+            #ra_img = (test_img / np.max(test_img)) * 255.0
+            img_pil = Image.fromarray(np.uint8(test_img[0]))
+            img_name = "%s/%05d.png" % ("test_set", i)
+            img_pil.save(img_name)
+
         print("num of validation: %d" % (len(images_depths_invalid_val)))
+        if not gfile.Exists("validation_set"):
+            gfile.MakeDirs("validation_set")
+        for i, val_img in enumerate(images_depths_invalid_val):
+            #ra_img = (val_img / np.max(val_img)) * 255.0
+            img_pil = Image.fromarray(np.uint8(val_img[0]))
+            img_name = "%s/%05d.png" % ("validation_set", i)
+            img_pil.save(img_name)
 
         self.invalid_depths = depths
         self.batches = []
@@ -130,12 +145,12 @@ class ImageInput(object):
     def get_test(self):
         return self.images_depths_invalid_test
 
-    def get_validation(self):
-        print("shuffle start.")
-        random.shuffle(self.images_depths_invalid_val)
-        random.shuffle(self.images_depths_invalid_val)
-        print("shuffle done.")
-
+    def get_validation(self, shuffle=False):
+        if shuffle:
+            print("shuffle start.")
+            random.shuffle(self.images_depths_invalid_val)
+            random.shuffle(self.images_depths_invalid_val)
+            print("shuffle done.")
         images = [a[0] for a in self.images_depths_invalid_val]
         labels = [a[1] for a in self.images_depths_invalid_val]
         invalid_labels = [a[2] for a in self.images_depths_invalid_val]
@@ -143,6 +158,19 @@ class ImageInput(object):
 
     def __len__(self):
         return len(self.labels)
+
+
+def output_predict(depths, output_dir):
+    if not gfile.Exists(output_dir):
+        gfile.MakeDirs(output_dir)
+
+    print("the number of output predict: %d" % len(depths))
+    for i, depth in enumerate(depths):
+        depth = depth.transpose(2, 0, 1)
+        ra_depth = (depth/np.max(depth))*255.0
+        depth_pil = Image.fromarray(np.uint8(ra_depth[0]), mode="L")
+        depth_name = "%s/%05d.png" % (output_dir, i)
+        depth_pil.save(depth_name)
 
 
 def test():

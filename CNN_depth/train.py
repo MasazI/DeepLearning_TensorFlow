@@ -66,11 +66,15 @@ def train():
         keep_hidden = tf.placeholder(tf.float32)
 
         # graphのoutput
-        logits, logits_fine = model.inference(images, keep_conv, keep_hidden)
+        if FLAGS.refine_train:
+            print("refine train.")
+            logits = model.inference_refine(images, keep_conv, keep_hidden)
+        else:
+            print("coarse train.")
+            logits = model.inference(images, keep_conv, keep_hidden)
 
         # loss graphのoutputとlabelを利用
         loss = model.loss(logits, depths, invalid_depths)
-
         # 学習オペレーション
         train_op = op.train(loss, global_step)
 
@@ -91,17 +95,37 @@ def train():
         # coarseとrefineを分けて保存
         coarse_params = {}
         refine_params = {}
-        for variable in tf.trainable_variables():
-            variable_name = variable.name
-            print("parameter: %s" %(variable_name))
-            scope, name = variable_name.split("/")
-            target, _ = name.split(":")
-            if variable_name.find('coarse') >= 0:
-                print("coarse parameter: %s" %(variable_name))
-                coarse_params[variable_name] = variable
-            if variable_name.find('fine') >= 0:
-                print("refine parameter: %s" %(variable_name))
-                refine_params[variable_name] = variable
+
+        if FLAGS.refine_train:
+            for variable in tf.all_variables():
+                variable_name = variable.name
+                print("parameter: %s" % (variable_name))
+                if variable_name.find("/") < 0 or variable_name.count("/") != 1:
+                    print("ignore.")
+                    continue
+                scope, name = variable_name.split("/")
+                target, _ = name.split(":")
+                if variable_name.find('coarse') >= 0:
+                    print("coarse parameter: %s" % (variable_name))
+                    coarse_params[variable_name] = variable
+                if variable_name.find('fine') >= 0:
+                    print("refine parameter: %s" % (variable_name))
+                    refine_params[variable_name] = variable
+        else:
+            for variable in tf.trainable_variables():
+                variable_name = variable.name
+                print("parameter: %s" %(variable_name))
+                if variable_name.find("/") < 0 or variable_name.count("/") != 1:
+                    print("ignore.")
+                    continue
+                scope, name = variable_name.split("/")
+                target, _ = name.split(":")
+                if variable_name.find('coarse') >= 0:
+                    print("coarse parameter: %s" %(variable_name))
+                    coarse_params[variable_name] = variable
+                if variable_name.find('fine') >= 0:
+                    print("refine parameter: %s" %(variable_name))
+                    refine_params[variable_name] = variable
 
         # define saver
         saver_coarse = tf.train.Saver(coarse_params)
@@ -191,12 +215,12 @@ def train():
         #            summary_writer.add_summary(summary_str, step)
         #    
             if step % 5 == 0 or (step * 1) == MAX_STEPS:
-                if FLAGS.coarse_train:
-                    coarse_checkpoint_path = COARSE_DIR + '/model.ckpt'
-                    saver_coarse.save(sess, coarse_checkpoint_path, global_step=step)
                 if FLAGS.refine_train:
                     refine_checkpoint_path = REFINE_DIR + '/model.ckpt'
                     saver_refine.save(sess, refine_checkpoint_path, global_step=step)
+                else:
+                    coarse_checkpoint_path = COARSE_DIR + '/model.ckpt'
+                    saver_coarse.save(sess, coarse_checkpoint_path, global_step=step)
 
         coord.request_stop()
         coord.join(threads)

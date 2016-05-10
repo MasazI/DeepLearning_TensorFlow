@@ -7,12 +7,12 @@ import matplotlib.pyplot as plt
 from data import image_shape
 from data import get_drive_dir, Calib, get_inds, image_shape, get_calib_dir
 
-
+from PIL import Image
 
 root_dir = os.path.dirname(os.path.abspath(__file__))
 data_dir = os.path.join(root_dir, 'data')
 
-VELODYNE_DIR = "2011_09_26/2011_09_26_drive_0001_sync/velodyne_points"
+VELODYNE_DIR = "2011_09_26/2011_09_26_drive_0002_sync/velodyne_points"
 
 def get_velodyne_points(velodyne_dir, frame):
     points_path = os.path.join(velodyne_dir, "data/%010d.bin" % frame)
@@ -58,16 +58,27 @@ def test():
         image_array = np.asarray([1224, 368])
 
         xyd = load_disparity_points(velodyne_dir, i, color=False)
-        disp = np.zeros(image_shape, dtype=np.uint8)
+        disp = np.zeros(image_shape, dtype=np.float)
         for x, y, d in np.round(xyd):
             disp[y, x] = d
 
+        ones = np.ones(image_shape, dtype=np.float)
 
+        image = Image.fromarray(np.uint8(ones - (disp/np.max(disp))*255.0))
+        image.save("depth/%05d.png" % i)
 
-        plt.figure(1)
-        plt.clf()
-        plt.imshow(disp)
-        plt.show()
+        #plt.subplot(121)
+        #plt.imshow(image)
+        #plt.title("Original")
+        #plt.subplot(122)
+        #plt.imshow(image)
+        #plt.title("Depth")
+        #plt.show()
+
+        #plt.figure(1)
+        #plt.clf()
+        #plt.imshow(disp)
+        #plt.show()
 
 
 if __name__ == '__main__':

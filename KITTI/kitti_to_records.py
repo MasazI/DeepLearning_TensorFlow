@@ -4,6 +4,8 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
+from tensorflow.python.platform import gfile
+
 from data import image_shape
 from data import get_drive_dir, Calib, get_inds, image_shape, get_calib_dir
 
@@ -12,7 +14,11 @@ from PIL import Image
 root_dir = os.path.dirname(os.path.abspath(__file__))
 data_dir = os.path.join(root_dir, 'data')
 
-VELODYNE_DIR = "2011_09_26/2011_09_26_drive_0002_sync/velodyne_points"
+VELODYNE_DIRS = [
+                "2011_09_26/2011_09_26_drive_0001_sync/velodyne_points",
+                "2011_09_26/2011_09_26_drive_0002_sync/velodyne_points",
+                "2011_09_26/2011_09_26_drive_0005_sync/velodyne_points"
+                ]
 
 def get_velodyne_points(velodyne_dir, frame):
     points_path = os.path.join(velodyne_dir, "data/%010d.bin" % frame)
@@ -38,9 +44,13 @@ def load_disparity_points(velodyne_dir, frame, color=False, **kwargs):
 
     return xyd
 
-def test():
-    for i in xrange(108):
-        velodyne_dir = os.path.join(data_dir, VELODYNE_DIR)
+def test(vel, verbose=False):
+    velodyne_dir = os.path.join(data_dir, vel)
+
+    velodyne_bin_dir = os.path.join(velodyne_dir, "data")
+    bin_list = os.listdir(velodyne_bin_dir)
+
+    for i in xrange(len(bin_list)):
         points = get_velodyne_points(velodyne_dir, i)
         print("points data type: %s" % type(points))
         print(points.shape)
@@ -65,21 +75,27 @@ def test():
         ones = np.ones(image_shape, dtype=np.float)
 
         image = Image.fromarray(np.uint8(ones - (disp/np.max(disp))*255.0))
-        image.save("depth/%05d.png" % i)
+        save_dir = os.path.join(velodyne_dir, "depth")
+        if not gfile.Exists(save_dir):
+            gfile.MakeDirs(save_dir)
+        save_path = os.path.join(velodyne_dir, "depth/%010d.png" % i)
+        image.save(save_path)
 
-        #plt.subplot(121)
-        #plt.imshow(image)
-        #plt.title("Original")
-        #plt.subplot(122)
-        #plt.imshow(image)
-        #plt.title("Depth")
-        #plt.show()
+        if verbose:
+            plt.subplot(121)
+            plt.imshow(image)
+            plt.title("Original")
+            plt.subplot(122)
+            plt.imshow(image)
+            plt.title("Depth")
+            plt.show()
 
-        #plt.figure(1)
-        #plt.clf()
-        #plt.imshow(disp)
-        #plt.show()
+            plt.figure(1)
+            plt.clf()
+            plt.imshow(disp)
+            plt.show()
 
 
 if __name__ == '__main__':
-    test()
+    for vel in VELODYNE_DIRS:
+        test(vel)

@@ -19,6 +19,7 @@ http://tensorflow.org/
 - SpatialTransfomerNetwork
 - SpatialTransfomerNetwork with AlexNet 2012 (pretrain and fine-tuning structure)
 - DCGAN https://github.com/MasazI/dcgan
+- InceptionV3 https://github.com/MasazI/InceptionV3_TensorFlow
 
 if you use pyenv and anaconda:
 add /path/to/.pyenv/versions/anaconda-2.0.1/bin/ into PATH
